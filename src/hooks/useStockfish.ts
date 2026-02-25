@@ -1,8 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import type { EngineInfo } from '@/types'
+import { parseEngineOutput } from '@/lib/parseEngineOutput'
 
 type InfoHandler = (info: EngineInfo) => void
 type BestMoveHandler = (move: string) => void
+
+const wasmSupported =
+  typeof WebAssembly === 'object' &&
+  WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
 
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null)
@@ -11,28 +16,24 @@ export function useStockfish() {
   const bestMoveHandlerRef = useRef<BestMoveHandler | null>(null)
 
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../workers/stockfish.worker.ts', import.meta.url),
-      { type: 'module' }
-    )
+    const worker = new Worker(wasmSupported ? '/stockfish.wasm.js' : '/stockfish.js')
 
     worker.onmessage = (e: MessageEvent) => {
-      const { type, line } = e.data as { type: string; line: string }
-
-      if (type === 'READY') {
+      const line = e.data as string
+      if (line === 'readyok') {
         setIsReady(true)
       }
-
-      if (type === 'ENGINE_OUTPUT' && line) {
-        parseEngineOutput(line, infoHandlerRef.current, bestMoveHandlerRef.current)
-      }
+      parseEngineOutput(line, infoHandlerRef.current, bestMoveHandlerRef.current)
     }
 
-    worker.postMessage({ type: 'INIT' })
+    worker.postMessage('uci')
+    worker.postMessage('setoption name MultiPV value 2')
+    worker.postMessage('setoption name Threads value 1')
+    worker.postMessage('isready')
     workerRef.current = worker
 
     return () => {
-      worker.postMessage({ type: 'TERMINATE' })
+      worker.postMessage('quit')
       worker.terminate()
     }
   }, [])
@@ -46,19 +47,20 @@ export function useStockfish() {
     ) => {
       infoHandlerRef.current = onInfo
       bestMoveHandlerRef.current = onBestMove
-      workerRef.current?.postMessage({ type: 'ANALYZE', payload: { fen, depth } })
+      workerRef.current?.postMessage('stop')
+      workerRef.current?.postMessage(`position fen ${fen}`)
+      workerRef.current?.postMessage(`go depth ${depth}`)
     },
     []
   )
 
   const stop = useCallback(() => {
-    workerRef.current?.postMessage({ type: 'STOP' })
+    workerRef.current?.postMessage('stop')
   }, [])
 
   const analyzePosition = useCallback(
     (fen: string, depth = 18): Promise<{ info: EngineInfo; bestMove: string }> => {
       return new Promise((resolve) => {
-        // Track best (multipv 1) and second-best (multipv 2) separately
         let bestInfo: EngineInfo | null = null
         let secondScore: number | null = null
 
@@ -84,36 +86,3 @@ export function useStockfish() {
   return { isReady, analyze, stop, analyzePosition }
 }
 
-function parseEngineOutput(
-  line: string,
-  onInfo: InfoHandler | null,
-  onBestMove: BestMoveHandler | null
-) {
-  if (line.startsWith('info') && line.includes('score') && !line.includes('lowerbound') && !line.includes('upperbound')) {
-    const depthMatch = line.match(/depth (\d+)/)
-    const cpMatch = line.match(/score cp (-?\d+)/)
-    const mateMatch = line.match(/score mate (-?\d+)/)
-    const pvMatch = line.match(/ pv (.+)/)
-    const multipvMatch = line.match(/multipv (\d+)/)
-
-    const info: EngineInfo = {
-      depth: depthMatch ? parseInt(depthMatch[1]) : 0,
-      score: cpMatch ? parseInt(cpMatch[1]) : 0,
-      mate: mateMatch ? parseInt(mateMatch[1]) : null,
-      pv: pvMatch ? pvMatch[1].trim() : '',
-      secondScore: null,
-      multipv: multipvMatch ? parseInt(multipvMatch[1]) : 1,
-    }
-
-    onInfo?.(info)
-  }
-
-  if (line.startsWith('bestmove')) {
-    const parts = line.split(' ')
-    if (parts[1] && parts[1] !== '(none)') {
-      onBestMove?.(parts[1])
-    } else {
-      onBestMove?.('')
-    }
-  }
-}

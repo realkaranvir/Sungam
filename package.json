@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
     "postinstall": "cp node_modules/stockfish.js/stockfish.js public/stockfish.js && cp node_modules/stockfish.js/stockfish.wasm public/stockfish.wasm && cp node_modules/stockfish.js/stockfish.wasm.js public/stockfish.wasm.js"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   }
 }
