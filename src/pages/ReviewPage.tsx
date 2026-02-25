@@ -51,7 +51,7 @@ export function ReviewPage() {
   const { isReady, analyzePosition } = useStockfish()
 
   // Resize observer: board fills its container.
-  // Subtract the eval bar width (w-6 = 24px) + gap (8px) so the chessboard itself is square.
+  // contentRect already excludes padding, so just subtract the eval bar (w-6=24px + gap-2=8px).
   const EVAL_BAR_TOTAL = 24 + 8 // w-6 + gap-2
   useEffect(() => {
     const el = boardContainerRef.current
@@ -259,7 +259,7 @@ export function ReviewPage() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0">
 
           {/* Board + eval bar — this div grows to fill available space */}
-          <div ref={boardContainerRef} className="flex-1 flex items-center justify-center p-2 min-h-0 overflow-hidden">
+          <div ref={boardContainerRef} className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
             <div
               className="flex gap-2 items-stretch"
               style={{ height: boardSize }}
@@ -288,7 +288,7 @@ export function ReviewPage() {
           </div>
 
           {/* Move info + controls — fixed height below board */}
-          <div className="shrink-0 px-3 pb-2 space-y-1.5">
+          <div className="shrink-0 px-4 pb-4 space-y-2">
             {/* Current move classification */}
             <div className="flex items-center justify-between min-h-[1.75rem]">
               <div className="flex items-center gap-2 text-sm">
