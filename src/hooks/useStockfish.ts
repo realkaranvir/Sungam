@@ -14,6 +14,8 @@ export function useStockfish() {
   const [isReady, setIsReady] = useState(false)
   const infoHandlerRef = useRef<InfoHandler | null>(null)
   const bestMoveHandlerRef = useRef<BestMoveHandler | null>(null)
+  // When true, the next bestmove is from a stop command — ignore it
+  const ignoreBestMoveRef = useRef(false)
 
   useEffect(() => {
     const worker = new Worker(wasmSupported ? '/stockfish.wasm.js' : '/stockfish.js')
@@ -22,6 +24,10 @@ export function useStockfish() {
       const line = e.data as string
       if (line === 'readyok') {
         setIsReady(true)
+      }
+      if (line.startsWith('bestmove') && ignoreBestMoveRef.current) {
+        ignoreBestMoveRef.current = false
+        return
       }
       parseEngineOutput(line, infoHandlerRef.current, bestMoveHandlerRef.current)
     }
@@ -38,38 +44,18 @@ export function useStockfish() {
     }
   }, [])
 
-  const analyze = useCallback(
-    (
-      fen: string,
-      depth: number,
-      onInfo: InfoHandler,
-      onBestMove: BestMoveHandler
-    ) => {
-      infoHandlerRef.current = onInfo
-      bestMoveHandlerRef.current = onBestMove
-      workerRef.current?.postMessage('stop')
-      workerRef.current?.postMessage(`position fen ${fen}`)
-      workerRef.current?.postMessage(`go depth ${depth}`)
-    },
-    []
-  )
-
-  const stop = useCallback(() => {
-    workerRef.current?.postMessage('stop')
-  }, [])
-
   const analyzePosition = useCallback(
-    (fen: string, depth = 18): Promise<{ info: EngineInfo; bestMove: string }> => {
+    (fen: string, depth = 16): Promise<{ info: EngineInfo; bestMove: string }> => {
       return new Promise((resolve) => {
         let bestInfo: EngineInfo | null = null
         let secondScore: number | null = null
 
-        const onInfo: InfoHandler = (info) => {
+        infoHandlerRef.current = (info) => {
           if (info.multipv === 1) bestInfo = info
           if (info.multipv === 2) secondScore = info.score
         }
 
-        const onBestMove: BestMoveHandler = (move) => {
+        bestMoveHandlerRef.current = (move) => {
           const base = bestInfo ?? { depth: 0, score: 0, mate: null, pv: '', multipv: 1 }
           resolve({
             info: { ...base, secondScore },
@@ -77,12 +63,23 @@ export function useStockfish() {
           })
         }
 
-        analyze(fen, depth, onInfo, onBestMove)
+        // If a search is running, stop it — but ignore the bestmove that stop emits
+        if (bestInfo !== null || ignoreBestMoveRef.current) {
+          ignoreBestMoveRef.current = true
+          workerRef.current?.postMessage('stop')
+        }
+
+        workerRef.current?.postMessage(`position fen ${fen}`)
+        workerRef.current?.postMessage(`go depth ${depth}`)
       })
     },
-    [analyze]
+    []
   )
 
-  return { isReady, analyze, stop, analyzePosition }
-}
+  const stop = useCallback(() => {
+    ignoreBestMoveRef.current = true
+    workerRef.current?.postMessage('stop')
+  }, [])
 
+  return { isReady, analyzePosition, stop }
+}
