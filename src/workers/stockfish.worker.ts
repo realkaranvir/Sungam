@@ -1,5 +1,9 @@
 let sfWorker: Worker | null = null
 
+const wasmSupported =
+  typeof WebAssembly === 'object' &&
+  WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+
 self.onmessage = (e: MessageEvent) => {
   const { type, payload } = e.data as {
     type: string
@@ -7,7 +11,7 @@ self.onmessage = (e: MessageEvent) => {
   }
 
   if (type === 'INIT') {
-    sfWorker = new Worker('/stockfish.js')
+    sfWorker = new Worker(wasmSupported ? '/stockfish.wasm.js' : '/stockfish.js')
     sfWorker.onmessage = (sfEvent: MessageEvent) => {
       const line = sfEvent.data as string
       if (line === 'readyok') {

@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postinstall": "cp node_modules/stockfish/bin/stockfish.js public/stockfish.js && cp node_modules/stockfish/bin/stockfish.wasm public/stockfish.wasm"
+    "postinstall": "cp node_modules/stockfish.js/stockfish.js public/stockfish.js && cp node_modules/stockfish.js/stockfish.wasm public/stockfish.wasm && cp node_modules/stockfish.js/stockfish.wasm.js public/stockfish.wasm.js"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.8",
@@ -24,7 +24,7 @@
     "react-chessboard": "^5.10.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1",
-    "stockfish": "^18.0.5",
+    "stockfish.js": "^10.0.2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7"
   },
