@@ -209,9 +209,13 @@ export function ReviewPage() {
   const currentAnalyzed = currentIndex >= 0 ? (analyzedMoves[currentIndex] as AnalyzedMove | null) : null
 
 
-  // Eval bar score
-  const evalCp = currentEngineInfo?.score ?? 0
-  const evalMate = currentEngineInfo?.mate ?? null
+  // Eval bar score — Stockfish scores are from the side-to-move's perspective.
+  // Convert to white's perspective: negate when it's black's turn in the current position.
+  const sideToMove = currentFen.split(' ')[1] // 'w' or 'b'
+  const sideMultiplier = sideToMove === 'b' ? -1 : 1
+  const evalCp = (currentEngineInfo?.score ?? 0) * sideMultiplier
+  const rawMate = currentEngineInfo?.mate ?? null
+  const evalMate = rawMate !== null ? rawMate * sideMultiplier : null
 
   // Summary counts
   const classificationCounts = (analyzedMoves as (AnalyzedMove | null)[]).reduce(
