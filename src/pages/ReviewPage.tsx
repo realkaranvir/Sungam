@@ -130,8 +130,10 @@ export function ReviewPage() {
         const infoBeforeMove = engineResults[i]  // position before this move
         const infoAfterMove = engineResults[i + 1]  // position after this move
 
-        const cpBefore = infoBeforeMove.score
-        const cpAfter = infoAfterMove.score
+        // Normalize scores to white's perspective.
+        // Stockfish scores are from the side-to-move's perspective, so negate when it's black's turn.
+        const cpBefore = move.color === 'w' ? infoBeforeMove.score : -infoBeforeMove.score
+        const cpAfter  = move.color === 'w' ? -infoAfterMove.score : infoAfterMove.score
 
         const classification = classifyMove(
           cpBefore,
@@ -146,6 +148,9 @@ export function ReviewPage() {
         // The played move in UCI: we get it from fenBefore
         const bestMoveSan = uciToSan(move.fenBefore, infoBeforeMove.pv)
 
+        // Both scores are now white-perspective. Loss for the moving player:
+        // white: their advantage = cpBefore, after = cpAfter → loss = cpBefore - cpAfter
+        // black: their advantage = -cpBefore, after = -cpAfter → loss = cpAfter - cpBefore
         const cpLoss =
           move.color === 'w'
             ? cpBefore - cpAfter

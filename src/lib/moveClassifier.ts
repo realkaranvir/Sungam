@@ -66,8 +66,8 @@ function isSacrifice(fenBefore: string, uciMove: string): boolean {
 /**
  * Classify a chess move based on centipawn scores, approximating Chess.com's system.
  *
- * @param cpBefore      Score before the move (white perspective, from Stockfish)
- * @param cpAfter       Score after the move (white perspective, from Stockfish)
+ * @param cpBefore      Score before the move (white perspective — positive = white winning)
+ * @param cpAfter       Score after the move (white perspective — positive = white winning)
  * @param color         Who made the move
  * @param engineBefore  Engine output for the position before the move (MultiPV 2)
  * @param playedMoveUci The UCI move that was actually played
