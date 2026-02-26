@@ -65,6 +65,7 @@ export interface ProcessedGame {
 
 export interface ParsedMove {
   san: string
+  uci: string      // UCI move string e.g. "e2e4"
   fen: string      // position after the move
   fenBefore: string
   moveNumber: number

@@ -28,8 +28,10 @@ export function useChessGame(pgn: string): ChessGameData {
       const fenAfter = replay.fen()
       const fullMoveNumber = Math.ceil(moves.length / 2) + 1
 
+      const uci = move.from + move.to + (move.promotion ?? '')
       moves.push({
         san: move.san,
+        uci,
         fen: fenAfter,
         fenBefore,
         moveNumber: fullMoveNumber,

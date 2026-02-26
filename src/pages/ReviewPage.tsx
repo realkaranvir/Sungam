@@ -57,6 +57,20 @@ export function ReviewPage() {
   const analysisProgress = analysisState.progress
   const analysisAbortRef = useRef(false)
 
+  // Snap board size to multiple of 8 to prevent subpixel gaps in the grid
+  const boardMeasureRef = useRef<HTMLDivElement | null>(null)
+  const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    const el = boardMeasureRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width
+      setBoardSize(Math.floor(w / 8) * 8)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // Current position FEN
   const currentFen =
     currentIndex === -1 ? initialFen : (moves[currentIndex]?.fen ?? initialFen)
@@ -124,7 +138,8 @@ export function ReviewPage() {
           cpAfter,
           move.color,
           infoBeforeMove,
-          infoBeforeMove.pv,
+          move.uci,
+          move.fenBefore,
         )
 
         // Check if the played move matches the best move
@@ -192,6 +207,7 @@ export function ReviewPage() {
   }, [currentIndex, goTo, moves.length])
 
   const currentAnalyzed = currentIndex >= 0 ? (analyzedMoves[currentIndex] as AnalyzedMove | null) : null
+
 
   // Eval bar score
   const evalCp = currentEngineInfo?.score ?? 0
@@ -271,116 +287,125 @@ export function ReviewPage() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-4">
-        <div className="flex flex-col lg:flex-row gap-4 h-full">
-          {/* Board area */}
-          <div className="flex items-start gap-3">
-            {/* Eval bar */}
+      <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">
+
+        {/* Board column — shrinks to board size on desktop, centered */}
+        <div className="flex flex-col items-center gap-2 w-full lg:w-auto lg:shrink-0 min-h-0">
+          {/* Eval bar + board, bar matches board height */}
+          <div className="flex items-stretch gap-2 flex-1 min-h-0">
             <EvaluationBar
               cp={evalCp}
               mate={evalMate}
               orientation={game.userColor}
-              className="self-stretch"
             />
-
-            {/* Board */}
-            <div className="w-full max-w-[480px]">
-              <Chessboard
-                options={{
-                  position: currentFen,
-                  boardOrientation: game.userColor,
-                  allowDragging: false,
-                  boardStyle: {
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-                  },
-                  darkSquareStyle: { backgroundColor: '#3d3d3d' },
-                  lightSquareStyle: { backgroundColor: '#a0a0a0' },
-                }}
-              />
-
-              {/* Navigation controls */}
-              <div className="flex items-center justify-center gap-2 mt-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goTo(-1)}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <SkipBack className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goTo(currentIndex - 1)}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goTo(currentIndex + 1)}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => goTo(moves.length - 1)}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <SkipForward className="h-4 w-4" />
-                </Button>
+            {/* Board: outer div constrains size, inner div snaps to multiple of 8 to prevent subpixel gaps */}
+            <div
+              ref={boardMeasureRef}
+              className="min-h-0 min-w-0"
+              style={{ width: 'min(100%, calc(100vh - 13rem))', maxWidth: '100%', maxHeight: '100%' }}
+            >
+              <div style={{ width: boardSize, height: boardSize }}>
+                <Chessboard
+                  options={{
+                    position: currentFen,
+                    boardOrientation: game.userColor,
+                    allowDragging: false,
+                    boardStyle: {
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                    },
+                    darkSquareStyle: { backgroundColor: '#3d3d3d' },
+                    lightSquareStyle: { backgroundColor: '#a0a0a0' },
+                  }}
+                />
               </div>
+            </div>
+          </div>
 
-              {/* Current move info */}
-              {currentAnalyzed && (
-                <div className="mt-3 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono font-medium">
-                      {currentAnalyzed.moveNumber}
-                      {currentAnalyzed.color === 'w' ? '.' : '...'}{' '}
-                      {currentAnalyzed.san}
-                    </span>
-                    <MoveClassificationBadge
-                      classification={currentAnalyzed.classification}
-                      showLabel
-                    />
-                  </div>
-                  {currentAnalyzed.classification !== 'best' &&
-                    currentAnalyzed.classification !== 'brilliant' &&
-                    currentAnalyzed.bestMoveSan && (
-                      <p className="text-xs text-zinc-500">
-                        Best: <span className="text-zinc-300 font-mono">{currentAnalyzed.bestMoveSan}</span>
-                      </p>
-                    )}
-                  {currentAnalyzed.cpLoss > 0 && (
-                    <p className="text-xs text-zinc-600">
-                      −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
+          {/* Controls + move info — constrained to board width on desktop */}
+          <div style={{ width: boardSize }}>
+            {/* Navigation controls */}
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goTo(-1)}
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goTo(currentIndex - 1)}
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goTo(currentIndex + 1)}
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goTo(moves.length - 1)}
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Current move info */}
+            {currentAnalyzed && (
+              <div className="mt-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono font-medium">
+                    {currentAnalyzed.moveNumber}
+                    {currentAnalyzed.color === 'w' ? '.' : '...'}{' '}
+                    {currentAnalyzed.san}
+                  </span>
+                  <MoveClassificationBadge
+                    classification={currentAnalyzed.classification}
+                    showLabel
+                  />
+                </div>
+                {currentAnalyzed.classification !== 'best' &&
+                  currentAnalyzed.classification !== 'brilliant' &&
+                  currentAnalyzed.bestMoveSan && (
+                    <p className="text-xs text-zinc-500">
+                      Best: <span className="text-zinc-300 font-mono">{currentAnalyzed.bestMoveSan}</span>
                     </p>
                   )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Move list */}
-          <div className="flex-1 lg:max-h-[600px] min-h-[200px] rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
-            <div className="p-3 border-b border-zinc-800">
-              <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Moves</h3>
-            </div>
-            <div className="h-[calc(100%-44px)]">
-              <MoveList
-                moves={moves}
-                analyzedMoves={analyzedMoves as (AnalyzedMove | null)[]}
-                currentMoveIndex={currentIndex}
-                onMoveClick={setCurrentIndex}
-              />
-            </div>
+                {currentAnalyzed.cpLoss > 0 && (
+                  <p className="text-xs text-zinc-600">
+                    −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Move list — fills remaining width up to a max, then centers */}
+        <div className="w-full flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch h-64 lg:h-auto">
+          <div className="p-3 border-b border-zinc-800 shrink-0">
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Moves</h3>
+          </div>
+          <div className="flex-1 min-h-0">
+            <MoveList
+              moves={moves}
+              analyzedMoves={analyzedMoves as (AnalyzedMove | null)[]}
+              currentMoveIndex={currentIndex}
+              onMoveClick={setCurrentIndex}
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   )

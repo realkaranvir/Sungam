@@ -24,19 +24,19 @@ export function EvaluationBar({
   const isWhiteAdvantage = cp > 0 || (mate !== null && mate > 0)
 
   return (
-    <div className={cn('flex flex-col items-center gap-1', className)}>
+    <div className={cn('flex flex-col items-center gap-1 self-stretch', className)}>
       {/* Score label on top */}
       <span
         className={cn(
-          'text-xs font-bold tabular-nums',
+          'text-xs font-bold tabular-nums shrink-0',
           isWhiteAdvantage ? 'text-white' : 'text-zinc-400',
         )}
       >
         {score}
       </span>
 
-      {/* Bar */}
-      <div className="relative h-full w-4 min-h-[200px] rounded overflow-hidden bg-zinc-900 border border-zinc-700">
+      {/* Bar — grows to fill remaining height */}
+      <div className="relative flex-1 w-4 rounded overflow-hidden bg-zinc-900 border border-zinc-700">
         {/* Black portion (top) */}
         <div
           className="absolute top-0 left-0 right-0 bg-zinc-900 transition-all duration-500 ease-in-out"

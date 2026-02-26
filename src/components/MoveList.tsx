@@ -18,10 +18,33 @@ export function MoveList({
   onMoveClick,
 }: MoveListProps) {
   const activeRef = useRef<HTMLButtonElement | null>(null)
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
 
-  // Auto-scroll to current move
+  // Auto-scroll active move into view within the scroll area (not the page)
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const btn = activeRef.current
+    if (!btn) return
+
+    // Find the Radix ScrollArea viewport (the actual scrollable container)
+    const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-viewport"]',
+    )
+
+    if (viewport) {
+      const btnTop = btn.offsetTop
+      const btnBottom = btnTop + btn.offsetHeight
+      const viewportTop = viewport.scrollTop
+      const viewportBottom = viewportTop + viewport.clientHeight
+
+      if (btnTop < viewportTop) {
+        viewport.scrollTo({ top: btnTop - 8, behavior: 'smooth' })
+      } else if (btnBottom > viewportBottom) {
+        viewport.scrollTo({ top: btnBottom - viewport.clientHeight + 8, behavior: 'smooth' })
+      }
+    } else {
+      // Fallback: use scrollIntoView but constrained to parent
+      btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
   }, [currentMoveIndex])
 
   // Pair moves into rows: [white, black]
@@ -37,6 +60,7 @@ export function MoveList({
   }
 
   return (
+    <div ref={scrollAreaRef} className="h-full">
     <ScrollArea className="h-full">
       <div className="p-2 space-y-0.5">
         {movePairs.map((pair, pairIndex) => (
@@ -62,7 +86,7 @@ export function MoveList({
                   )}
                 >
                   <span>{move.san}</span>
-                  {analyzed && (
+                  {analyzed && analyzed.classification !== 'good' && (
                     <MoveClassificationBadge
                       classification={analyzed.classification}
                       className="ml-auto"
@@ -82,5 +106,6 @@ export function MoveList({
         )}
       </div>
     </ScrollArea>
+    </div>
   )
 }
