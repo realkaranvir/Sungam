@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,13 @@ const LS_KEY = 'sungam_username'
 export function SearchPage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '')
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LS_KEY)
+    if (stored) {
+      navigate(`/dashboard/${stored}`, { replace: true })
+    }
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

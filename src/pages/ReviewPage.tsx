@@ -10,12 +10,13 @@ import { classifyMove } from '@/lib/moveClassifier'
 import { EvaluationBar } from '@/components/EvaluationBar'
 import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
+import { AppHeader } from '@/components/AppHeader'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
-import { ArrowLeft, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
 function uciToSan(fen: string, uci: string): string {
@@ -246,27 +247,12 @@ export function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      {/* Header */}
-      <div className="border-b border-zinc-900 shrink-0">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              vs {game.opponent} ({game.opponentRating})
-            </p>
-            <p className="text-xs text-zinc-500">
-              {game.userColor === 'white' ? '♔' : '♚'} You · {game.result} · {game.date}
-            </p>
-          </div>
-
-          {/* Classification summary */}
+      <AppHeader
+        wide
+        onBack={() => navigate(-1)}
+        title={`vs ${game.opponent} (${game.opponentRating})`}
+        subtitle={`${game.userColor === 'white' ? '♔' : '♚'} You · ${game.result} · ${game.date}`}
+        right={
           <div className="hidden sm:flex items-center gap-1.5">
             {(Object.keys(META) as MoveClassification[]).map((key) => {
               const count = classificationCounts[key]
@@ -279,8 +265,8 @@ export function ReviewPage() {
               )
             })}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Analysis progress */}
       {isAnalyzing && (

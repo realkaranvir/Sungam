@@ -1,14 +1,13 @@
 import { useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useChessComApi } from '@/hooks/useChessComApi'
 import { GameCard } from '@/components/GameCard'
+import { AppHeader } from '@/components/AppHeader'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export function DashboardPage() {
   const { username } = useParams<{ username: string }>()
-  const navigate = useNavigate()
   const { games, loading, error, fetchGames } = useChessComApi()
 
   useEffect(() => {
@@ -19,23 +18,10 @@ export function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Header */}
-      <div className="border-b border-zinc-900">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-semibold">{username}</h1>
-            <p className="text-xs text-zinc-500">Recent games</p>
-          </div>
-        </div>
-      </div>
+      <AppHeader
+        title={username}
+        subtitle="Recent games"
+      />
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
