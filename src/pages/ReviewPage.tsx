@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
+import { Chess } from 'chess.js'
+
 import { useChessGame } from '@/hooks/useChessGame'
 import { useStockfish } from '@/hooks/useStockfish'
 import { classifyMove } from '@/lib/moveClassifier'
@@ -10,397 +12,373 @@ import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import type { AnalyzedMove, EngineInfo, ProcessedGame } from '@/types'
-import { CLASSIFICATION_META } from '@/lib/moveClassifier'
+
+import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
+import { CLASSIFICATION_META as META } from '@/types'
+import { ArrowLeft, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
+
+// Convert UCI move to SAN in a position
+function uciToSan(fen: string, uci: string): string {
+  try {
+    const chess = new Chess(fen)
+    const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] })
+    return move?.san ?? uci
+  } catch {
+    return uci
+  }
+}
 
 export function ReviewPage() {
-  const navigate = useNavigate()
   const location = useLocation()
-  useParams<{ gameId: string }>()
+  const navigate = useNavigate()
+  useParams() // gameId present in URL but game data comes via router state
   const game = location.state?.game as ProcessedGame | undefined
 
-  const [analysisPhase, setAnalysisPhase] = useState<'idle' | 'analyzing' | 'done'>('idle')
-  const [analysisProgress, setAnalysisProgress] = useState(0)
-  const [currentEngineInfo, setCurrentEngineInfo] = useState<EngineInfo | null>(null)
-  const [perMoveEvals, setPerMoveEvals] = useState<(EngineInfo | null)[]>([])
-  const analysisRunning = useRef(false)
+  const { moves, initialFen } = useChessGame(game?.pgn ?? '')
+  const { analyzePosition, stop } = useStockfish()
 
-  // Board size — driven by container width via ResizeObserver
-  const boardContainerRef = useRef<HTMLDivElement>(null)
-  const [boardSize, setBoardSize] = useState(480)
+  const [currentIndex, setCurrentIndex] = useState(-1) // -1 = initial
 
-  const pgn = game?.pgn ?? ''
-  const orientation = game?.userColor ?? 'white'
+  interface AnalysisState {
+    analyzedMoves: (AnalyzedMove | null)[]
+    engineInfos: (EngineInfo | null)[]
+    progress: number
+    isAnalyzing: boolean
+  }
+  const [analysisState, setAnalysisState] = useState<AnalysisState>({
+    analyzedMoves: [],
+    engineInfos: [],
+    progress: 0,
+    isAnalyzing: false,
+  })
+  const analyzedMoves = analysisState.analyzedMoves
+  const engineInfos = analysisState.engineInfos
+  const isAnalyzing = analysisState.isAnalyzing
+  const analysisProgress = analysisState.progress
+  const analysisAbortRef = useRef(false)
 
-  const {
-    moves,
-    fens,
-    currentFen,
-    currentMoveIndex,
-    lastMoveSquares,
-    analyzedMoves,
-    setAnalyzedMoves,
-    goToMove,
-    goForward,
-    goBack,
-    goToStart,
-    goToEnd,
-  } = useChessGame(pgn)
+  // Current position FEN
+  const currentFen =
+    currentIndex === -1 ? initialFen : (moves[currentIndex]?.fen ?? initialFen)
 
-  const { isReady, analyzePosition } = useStockfish()
+  // Current engine info for display
+  const currentEngineInfo =
+    currentIndex === -1
+      ? null
+      : (engineInfos[currentIndex] ?? null)
 
-  // Resize observer: board fills its container.
-  // contentRect already excludes padding, so just subtract the eval bar (w-6=24px + gap-2=8px).
-  const EVAL_BAR_TOTAL = 24 + 8 // w-6 + gap-2
+  // Run analysis when moves are loaded
   useEffect(() => {
-    const el = boardContainerRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect
-      const availableForBoard = width - EVAL_BAR_TOTAL
-      setBoardSize(Math.floor(Math.min(availableForBoard, height)))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // Update engine info display when navigating moves
-  useEffect(() => {
-    const idx = currentMoveIndex + 1
-    if (perMoveEvals[idx] !== undefined) {
-      setCurrentEngineInfo(perMoveEvals[idx])
-    }
-  }, [currentMoveIndex, perMoveEvals])
-
-  // Run full analysis when engine is ready
-  useEffect(() => {
-    if (!isReady || fens.length === 0 || analysisRunning.current) return
-    if (analysisPhase !== 'idle') return
     if (moves.length === 0) return
 
-    analysisRunning.current = true
-    setAnalysisPhase('analyzing')
+    setAnalysisState({
+      analyzedMoves: new Array(moves.length).fill(null),
+      engineInfos: new Array(moves.length).fill(null),
+      progress: 0,
+      isAnalyzing: true,
+    })
+    analysisAbortRef.current = false
 
-    runAnalysis()
+    const runAnalysis = async () => {
+      // Pre-analyze: initial position + all positions after each move
+      const fensToAnalyze: string[] = [initialFen, ...moves.map((m) => m.fen)]
 
-    async function runAnalysis() {
-      const evals: EngineInfo[] = []
+      const engineResults: EngineInfo[] = []
 
-      for (let i = 0; i < fens.length; i++) {
+      for (let i = 0; i < fensToAnalyze.length; i++) {
+        if (analysisAbortRef.current) break
+
+        const fen = fensToAnalyze[i]
         try {
-          const { info } = await analyzePosition(fens[i], 16)
-          const isBlackToMove = fens[i].split(' ')[1] === 'b'
-          const normalized: EngineInfo = {
-            ...info,
-            score: isBlackToMove ? -info.score : info.score,
-            mate: info.mate !== null && isBlackToMove ? -info.mate : info.mate,
-            secondScore:
-              info.secondScore !== null
-                ? isBlackToMove ? -info.secondScore : info.secondScore
-                : null,
-          }
-          evals.push(normalized)
+          const info = await analyzePosition(fen, 16)
+          engineResults.push(info)
         } catch {
-          evals.push({ depth: 0, score: 0, mate: null, pv: '', secondScore: null })
+          // Use a neutral score if analysis fails
+          engineResults.push({ depth: 0, score: 0, mate: null, pv: '', secondScore: null })
         }
-        setAnalysisProgress(Math.round(((i + 1) / fens.length) * 100))
+
+        // Progress: we've analyzed i+1 positions out of fensToAnalyze.length
+        const progress = Math.round(((i + 1) / fensToAnalyze.length) * 100)
+        setAnalysisState((prev) => ({ ...prev, progress }))
       }
 
-      setPerMoveEvals(evals)
+      if (analysisAbortRef.current) {
+        setAnalysisState((prev) => ({ ...prev, isAnalyzing: false }))
+        return
+      }
 
-      const classified: AnalyzedMove[] = moves.map((move, idx) => {
-        const evalBefore = evals[idx]
-        const evalAfter = evals[idx + 1]
-        if (!evalBefore || !evalAfter) return null
+      // Now classify each move
+      const analyzed: AnalyzedMove[] = []
+      const infos: EngineInfo[] = []
 
-        const isBlackMove = move.color === 'b'
-        const cpBefore = isBlackMove ? -evalBefore.score : evalBefore.score
-        const cpAfter = isBlackMove ? -evalAfter.score : evalAfter.score
-        const cpLoss = cpBefore - cpAfter
+      for (let i = 0; i < moves.length; i++) {
+        const move = moves[i]
+        const infoBeforeMove = engineResults[i]  // position before this move
+        const infoAfterMove = engineResults[i + 1]  // position after this move
 
-        const bestMoveUci = evalBefore.pv.split(' ')[0] ?? ''
-        let bestMoveSan = ''
-        try {
-          const chess = new Chess(fens[idx])
-          const result = chess.move({
-            from: bestMoveUci.slice(0, 2),
-            to: bestMoveUci.slice(2, 4),
-            promotion: bestMoveUci[4] ?? undefined,
-          })
-          bestMoveSan = result?.san ?? ''
-        } catch { /* ignore */ }
+        const cpBefore = infoBeforeMove.score
+        const cpAfter = infoAfterMove.score
 
-        const isBestMove = move.san === bestMoveSan
-
-        let secondBestGap: number | null = null
-        if (evalBefore.secondScore !== null) {
-          const bestFromMover = isBlackMove ? -evalBefore.score : evalBefore.score
-          const secondFromMover = isBlackMove ? -evalBefore.secondScore : evalBefore.secondScore
-          secondBestGap = bestFromMover - secondFromMover
-        }
-
-        return {
-          san: move.san,
-          fen: fens[idx + 1],
-          moveNumber: Math.floor(idx / 2) + 1,
-          color: isBlackMove ? 'black' : 'white',
+        const classification = classifyMove(
           cpBefore,
           cpAfter,
-          cpLoss,
-          classification: classifyMove(cpLoss, isBestMove, secondBestGap, cpBefore),
+          move.color,
+          infoBeforeMove,
+          infoBeforeMove.pv,
+        )
+
+        // Check if the played move matches the best move
+        // The played move in UCI: we get it from fenBefore
+        const bestMoveSan = uciToSan(move.fenBefore, infoBeforeMove.pv)
+
+        const cpLoss =
+          move.color === 'w'
+            ? cpBefore - cpAfter
+            : cpAfter - cpBefore
+
+        analyzed.push({
+          san: move.san,
+          fen: move.fen,
+          fenBefore: move.fenBefore,
+          moveNumber: move.moveNumber,
+          color: move.color,
+          cpBefore,
+          cpAfter,
+          cpLoss: Math.max(0, cpLoss),
+          classification,
           bestMoveSan,
-          bestMoveUci,
-        } satisfies AnalyzedMove
-      }).filter((m): m is AnalyzedMove => m !== null)
+          bestMoveUci: infoBeforeMove.pv,
+        })
 
-      setAnalyzedMoves(classified)
-      setAnalysisPhase('done')
-      analysisRunning.current = false
+        infos.push(infoAfterMove)
+      }
+
+      setAnalysisState((prev) => ({
+        ...prev,
+        analyzedMoves: analyzed,
+        engineInfos: infos,
+        isAnalyzing: false,
+        progress: 100,
+      }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, fens, moves])
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return
-      if (e.key === 'ArrowRight') { e.preventDefault(); goForward() }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goBack() }
-      if (e.key === 'ArrowUp') { e.preventDefault(); goToStart() }
-      if (e.key === 'ArrowDown') { e.preventDefault(); goToEnd() }
+    void runAnalysis()
+
+    return () => {
+      analysisAbortRef.current = true
+      stop()
+    }
+  }, [moves, initialFen, analyzePosition, stop])
+
+  // Navigation
+  const goTo = useCallback(
+    (index: number) => {
+      const clamped = Math.max(-1, Math.min(moves.length - 1, index))
+      setCurrentIndex(clamped)
     },
-    [goForward, goBack, goToStart, goToEnd]
+    [moves.length],
   )
 
+  // Keyboard navigation
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') goTo(currentIndex - 1)
+      else if (e.key === 'ArrowRight') goTo(currentIndex + 1)
+      else if (e.key === 'ArrowUp') goTo(-1)
+      else if (e.key === 'ArrowDown') goTo(moves.length - 1)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [currentIndex, goTo, moves.length])
+
+  const currentAnalyzed = currentIndex >= 0 ? (analyzedMoves[currentIndex] as AnalyzedMove | null) : null
+
+  // Eval bar score
+  const evalCp = currentEngineInfo?.score ?? 0
+  const evalMate = currentEngineInfo?.mate ?? null
+
+  // Summary counts
+  const classificationCounts = (analyzedMoves as (AnalyzedMove | null)[]).reduce(
+    (acc, m) => {
+      if (m) acc[m.classification] = (acc[m.classification] ?? 0) + 1
+      return acc
+    },
+    {} as Partial<Record<MoveClassification, number>>,
+  )
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400 mb-4">No game data found.</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>Go back</Button>
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-zinc-400">Game not found</p>
+          <Button onClick={() => navigate('/')} variant="outline">
+            Go Home
+          </Button>
         </div>
       </div>
     )
   }
 
-  const highlightSquares: Record<string, { background: string }> = {}
-  if (lastMoveSquares) {
-    highlightSquares[lastMoveSquares.from] = { background: 'rgba(255, 255, 100, 0.18)' }
-    highlightSquares[lastMoveSquares.to] = { background: 'rgba(255, 255, 100, 0.3)' }
-  }
-
-  const currentAnalyzedMove = currentMoveIndex >= 0 ? analyzedMoves[currentMoveIndex] : null
-  const currentEvalInfo = perMoveEvals[currentMoveIndex + 1] ?? currentEngineInfo
-
-  const classificationCounts = analyzedMoves.reduce(
-    (acc, m) => { acc[m.classification] = (acc[m.classification] ?? 0) + 1; return acc },
-    {} as Record<string, number>
-  )
-
-  const engineStatusText =
-    analysisPhase === 'analyzing' ? `${analysisProgress}%` :
-    analysisPhase === 'done' ? 'Done' :
-    !isReady ? 'Loading…' : ''
-
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-
-      {/* ── Header ── */}
-      <header className="shrink-0 border-b border-zinc-800 px-3 py-2 flex items-center gap-2">
-        <Button
-          variant="ghost" size="icon"
-          onClick={() => navigate(-1)}
-          className="shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 w-8"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-semibold text-white text-sm truncate">
-              {game.userColor === 'white' ? '♔' : '♚'} vs {game.opponent}
-            </span>
-            <span className={`text-xs font-medium shrink-0 ${
-              game.result === 'win' ? 'text-green-400' :
-              game.result === 'loss' ? 'text-red-400' : 'text-zinc-400'
-            }`}>
-              {game.result === 'win' ? 'Win' : game.result === 'loss' ? 'Loss' : 'Draw'}
-            </span>
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+      {/* Header */}
+      <div className="border-b border-zinc-900 shrink-0">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="text-zinc-400 hover:text-white hover:bg-zinc-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              vs {game.opponent} ({game.opponentRating})
+            </p>
+            <p className="text-xs text-zinc-500">
+              {game.userColor === 'white' ? '♔' : '♚'} You · {game.result} · {game.date}
+            </p>
           </div>
-          <div className="text-[11px] text-zinc-500 leading-tight">
-            {game.timeControl} · {game.date.toLocaleDateString()}
+
+          {/* Classification summary */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            {(Object.keys(META) as MoveClassification[]).map((key) => {
+              const count = classificationCounts[key]
+              if (!count) return null
+              return (
+                <div key={key} className="flex items-center gap-1">
+                  <MoveClassificationBadge classification={key} />
+                  <span className="text-xs text-zinc-400">{count}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
+      </div>
 
-        {engineStatusText && (
-          <span className="shrink-0 text-[11px] text-zinc-600 font-mono">{engineStatusText}</span>
-        )}
-      </header>
-
-      {/* Analysis progress bar */}
-      {analysisPhase === 'analyzing' && (
-        <Progress value={analysisProgress} className="h-0.5 shrink-0 rounded-none bg-zinc-900" />
+      {/* Analysis progress */}
+      {isAnalyzing && (
+        <div className="shrink-0 px-4 pt-2">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-zinc-400">Analyzing with Stockfish...</span>
+              <span className="text-xs text-zinc-500 ml-auto">{analysisProgress}%</span>
+            </div>
+            <Progress value={analysisProgress} className="h-1 bg-zinc-800" />
+          </div>
+        </div>
       )}
 
-      {/* ── Main area: board + sidebar ── */}
-      {/*
-        Desktop (md+): row layout — board fills left, move list on right (fixed w-56)
-        Mobile: column layout — board on top, controls + move list below
-      */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Main content */}
+      <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-4">
+        <div className="flex flex-col lg:flex-row gap-4 h-full">
+          {/* Board area */}
+          <div className="flex items-start gap-3">
+            {/* Eval bar */}
+            <EvaluationBar
+              cp={evalCp}
+              mate={evalMate}
+              orientation={game.userColor}
+              className="self-stretch"
+            />
 
-        {/* Board column */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0">
+            {/* Board */}
+            <div className="w-full max-w-[480px]">
+              <Chessboard
+                options={{
+                  position: currentFen,
+                  boardOrientation: game.userColor,
+                  allowDragging: false,
+                  boardStyle: {
+                    borderRadius: '4px',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                  },
+                  darkSquareStyle: { backgroundColor: '#3d3d3d' },
+                  lightSquareStyle: { backgroundColor: '#a0a0a0' },
+                }}
+              />
 
-          {/* Board + eval bar — this div grows to fill available space */}
-          <div ref={boardContainerRef} className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
-            <div
-              className="flex gap-2 items-stretch"
-              style={{ height: boardSize }}
-            >
-              {/* Eval bar — stretches to board height */}
-              <EvaluationBar engineInfo={currentEvalInfo ?? null} orientation={orientation} />
-
-              {/* Board — exact square */}
-              <div style={{ width: boardSize, height: boardSize }} className="shrink-0">
-                <Chessboard
-                  options={{
-                    position: currentFen,
-                    boardOrientation: orientation,
-                    allowDragging: false,
-                    squareStyles: highlightSquares,
-                    boardStyle: {
-                      borderRadius: '4px',
-                      boxShadow: '0 4px 32px rgba(0,0,0,0.6)',
-                    },
-                    darkSquareStyle: { backgroundColor: '#3d4a60' },
-                    lightSquareStyle: { backgroundColor: '#8fa0b8' },
-                  }}
-                />
+              {/* Navigation controls */}
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => goTo(-1)}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                >
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => goTo(currentIndex - 1)}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => goTo(currentIndex + 1)}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => goTo(moves.length - 1)}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                >
+                  <SkipForward className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
-          </div>
 
-          {/* Move info + controls — fixed height below board */}
-          <div className="shrink-0 px-4 pb-4 space-y-2">
-            {/* Current move classification */}
-            <div className="flex items-center justify-between min-h-[1.75rem]">
-              <div className="flex items-center gap-2 text-sm">
-                {currentAnalyzedMove ? (
-                  <>
+              {/* Current move info */}
+              {currentAnalyzed && (
+                <div className="mt-3 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-medium">
+                      {currentAnalyzed.moveNumber}
+                      {currentAnalyzed.color === 'w' ? '.' : '...'}{' '}
+                      {currentAnalyzed.san}
+                    </span>
                     <MoveClassificationBadge
-                      classification={currentAnalyzedMove.classification}
-                      cpLoss={currentAnalyzedMove.cpLoss}
-                      size="md"
+                      classification={currentAnalyzed.classification}
+                      showLabel
                     />
-                    <span className="font-mono font-medium text-white">
-                      {currentAnalyzedMove.san}
-                    </span>
-                    <span className="text-zinc-500">
-                      {CLASSIFICATION_META[currentAnalyzedMove.classification].label}
-                    </span>
-                    {currentAnalyzedMove.cpLoss > 10 && currentAnalyzedMove.bestMoveSan && (
-                      <span className="text-zinc-600 text-xs hidden sm:inline">
-                        Best: {currentAnalyzedMove.bestMoveSan}
-                      </span>
+                  </div>
+                  {currentAnalyzed.classification !== 'best' &&
+                    currentAnalyzed.classification !== 'brilliant' &&
+                    currentAnalyzed.bestMoveSan && (
+                      <p className="text-xs text-zinc-500">
+                        Best: <span className="text-zinc-300 font-mono">{currentAnalyzed.bestMoveSan}</span>
+                      </p>
                     )}
-                  </>
-                ) : (
-                  <span className="text-zinc-600 text-sm">
-                    {currentMoveIndex === -1 ? 'Starting position' : ''}
-                  </span>
-                )}
-              </div>
-              {/* Eval score */}
-              {currentEvalInfo && (
-                <span className="text-sm font-mono text-zinc-400 tabular-nums">
-                  {currentEvalInfo.mate !== null
-                    ? currentEvalInfo.mate > 0 ? `+M${currentEvalInfo.mate}` : `-M${Math.abs(currentEvalInfo.mate)}`
-                    : (currentEvalInfo.score >= 0 ? '+' : '') + (currentEvalInfo.score / 100).toFixed(1)}
-                </span>
+                  {currentAnalyzed.cpLoss > 0 && (
+                    <p className="text-xs text-zinc-600">
+                      −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
+                    </p>
+                  )}
+                </div>
               )}
             </div>
+          </div>
 
-            {/* Nav controls */}
-            <div className="flex items-center justify-center gap-1">
-              <Button variant="ghost" size="icon"
-                onClick={goToStart} disabled={currentMoveIndex === -1}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 h-9 w-9"
-              >
-                <ChevronsLeft className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon"
-                onClick={goBack} disabled={currentMoveIndex === -1}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 h-9 w-9"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <span className="text-xs text-zinc-600 w-24 text-center font-mono tabular-nums">
-                {currentMoveIndex === -1 ? 'Start' : `${currentMoveIndex + 1} / ${moves.length}`}
-              </span>
-              <Button variant="ghost" size="icon"
-                onClick={goForward} disabled={currentMoveIndex === moves.length - 1}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 h-9 w-9"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon"
-                onClick={goToEnd} disabled={currentMoveIndex === moves.length - 1}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 h-9 w-9"
-              >
-                <ChevronsRight className="w-5 h-5" />
-              </Button>
+          {/* Move list */}
+          <div className="flex-1 lg:max-h-[600px] min-h-[200px] rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
+            <div className="p-3 border-b border-zinc-800">
+              <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Moves</h3>
             </div>
-
-            {/* Summary stats */}
-            {analysisPhase === 'done' && analyzedMoves.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 justify-center">
-                {(['brilliant', 'great', 'best', 'good', 'inaccuracy', 'mistake', 'blunder'] as const).map((cls) => {
-                  const count = classificationCounts[cls] ?? 0
-                  if (count === 0) return null
-                  const meta = CLASSIFICATION_META[cls]
-                  return (
-                    <div key={cls}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${meta.bgColor} ${meta.borderColor}`}
-                    >
-                      <span className={`font-bold font-mono ${meta.color}`}>{meta.icon}</span>
-                      <span className="text-zinc-400">{count}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Mobile: move list inline below controls */}
-          <div className="md:hidden shrink-0 h-36 border-t border-zinc-800 overflow-hidden">
-            <MoveList
-              moves={moves}
-              analyzedMoves={analyzedMoves}
-              currentMoveIndex={currentMoveIndex}
-              onMoveClick={goToMove}
-            />
-          </div>
-        </div>
-
-        {/* Desktop sidebar: move list */}
-        <div className="hidden md:flex w-52 shrink-0 border-l border-zinc-800 flex-col">
-          <div className="px-3 py-2 border-b border-zinc-800 shrink-0">
-            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Moves</span>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <MoveList
-              moves={moves}
-              analyzedMoves={analyzedMoves}
-              currentMoveIndex={currentMoveIndex}
-              onMoveClick={goToMove}
-            />
+            <div className="h-[calc(100%-44px)]">
+              <MoveList
+                moves={moves}
+                analyzedMoves={analyzedMoves as (AnalyzedMove | null)[]}
+                currentMoveIndex={currentIndex}
+                onMoveClick={setCurrentIndex}
+              />
+            </div>
           </div>
         </div>
       </div>

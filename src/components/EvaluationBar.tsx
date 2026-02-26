@@ -1,55 +1,55 @@
-import { scoreToPercentage, formatScore } from '@/lib/moveClassifier'
-import type { EngineInfo } from '@/types'
+import { scoreToBarValue, formatScore } from '@/lib/moveClassifier'
+import { cn } from '@/lib/utils'
 
 interface EvaluationBarProps {
-  engineInfo: EngineInfo | null
-  orientation: 'white' | 'black'
+  cp: number
+  mate: number | null
+  orientation?: 'white' | 'black'
+  className?: string
 }
 
-export function EvaluationBar({ engineInfo, orientation }: EvaluationBarProps) {
-  const score = engineInfo?.score ?? 0
-  const mate = engineInfo?.mate ?? null
+export function EvaluationBar({
+  cp,
+  mate,
+  orientation = 'white',
+  className,
+}: EvaluationBarProps) {
+  const rawValue = scoreToBarValue(cp, mate) // -1 to 1, white perspective
+  const displayValue = orientation === 'white' ? rawValue : -rawValue
 
-  const whitePercent = scoreToPercentage(score, mate)
-  // When viewing as black, black's color is at the bottom
-  const bottomPercent = orientation === 'white' ? whitePercent : 100 - whitePercent
+  // White percentage on top (0% = all black, 100% = all white)
+  const whitePercent = Math.round(((displayValue + 1) / 2) * 100)
 
-  const formattedScore = formatScore(score, mate)
-  const whiteIsWinning = whitePercent >= 50
+  const score = formatScore(cp, mate)
+  const isWhiteAdvantage = cp > 0 || (mate !== null && mate > 0)
 
   return (
-    <div className="flex flex-col items-center gap-1 self-stretch flex-none w-6 select-none">
-      {/* The bar itself */}
-      <div className="relative flex-1 w-3 rounded-sm overflow-hidden bg-zinc-950 border border-zinc-800">
-        {/* Bottom fill */}
+    <div className={cn('flex flex-col items-center gap-1', className)}>
+      {/* Score label on top */}
+      <span
+        className={cn(
+          'text-xs font-bold tabular-nums',
+          isWhiteAdvantage ? 'text-white' : 'text-zinc-400',
+        )}
+      >
+        {score}
+      </span>
+
+      {/* Bar */}
+      <div className="relative h-full w-4 min-h-[200px] rounded overflow-hidden bg-zinc-900 border border-zinc-700">
+        {/* Black portion (top) */}
         <div
-          className={`absolute bottom-0 left-0 right-0 transition-all duration-300 ease-out ${
-            orientation === 'white' ? 'bg-white' : 'bg-zinc-200'
-          }`}
-          style={{ height: `${bottomPercent}%` }}
+          className="absolute top-0 left-0 right-0 bg-zinc-900 transition-all duration-500 ease-in-out"
+          style={{ height: `${100 - whitePercent}%` }}
         />
-        {/* Top fill */}
+        {/* White portion (bottom) */}
         <div
-          className={`absolute top-0 left-0 right-0 transition-all duration-300 ease-out ${
-            orientation === 'white' ? 'bg-zinc-800' : 'bg-zinc-800'
-          }`}
-          style={{ height: `${100 - bottomPercent}%` }}
+          className="absolute bottom-0 left-0 right-0 bg-white transition-all duration-500 ease-in-out"
+          style={{ height: `${whitePercent}%` }}
         />
         {/* Center line */}
-        <div
-          className="absolute left-0 right-0 h-px bg-zinc-500 z-10"
-          style={{ top: '50%' }}
-        />
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-zinc-600" />
       </div>
-
-      {/* Score label — outside the bar, always readable */}
-      <span
-        className={`text-[10px] font-mono font-semibold tabular-nums leading-none ${
-          whiteIsWinning ? 'text-zinc-200' : 'text-zinc-500'
-        }`}
-      >
-        {formattedScore}
-      </span>
     </div>
   )
 }

@@ -1,32 +1,30 @@
-import { CLASSIFICATION_META } from '@/lib/moveClassifier'
-import type { MoveClassification } from '@/types'
+import { CLASSIFICATION_META, type MoveClassification } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface MoveClassificationBadgeProps {
   classification: MoveClassification
-  cpLoss?: number
-  size?: 'sm' | 'md'
+  className?: string
+  showLabel?: boolean
 }
 
 export function MoveClassificationBadge({
   classification,
-  cpLoss,
-  size = 'sm',
+  className,
+  showLabel = false,
 }: MoveClassificationBadgeProps) {
   const meta = CLASSIFICATION_META[classification]
 
   return (
     <span
-      title={`${meta.label}${cpLoss !== undefined ? ` (${cpLoss > 0 ? '-' : ''}${Math.abs(cpLoss / 100).toFixed(1)} pawns)` : ''}`}
       className={cn(
-        'inline-flex items-center justify-center rounded font-bold font-mono border',
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold',
         meta.color,
         meta.bgColor,
-        meta.borderColor,
-        size === 'sm' ? 'text-[10px] px-1 py-0.5 min-w-[1.5rem]' : 'text-xs px-1.5 py-1 min-w-[2rem]'
+        className,
       )}
     >
-      {meta.icon}
+      <span>{meta.symbol}</span>
+      {showLabel && <span>{meta.label}</span>}
     </span>
   )
 }

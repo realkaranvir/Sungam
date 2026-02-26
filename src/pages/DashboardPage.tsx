@@ -4,105 +4,67 @@ import { useChessComApi } from '@/hooks/useChessComApi'
 import { GameCard } from '@/components/GameCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, RefreshCw, AlertCircle } from 'lucide-react'
+import { ArrowLeft, AlertCircle } from 'lucide-react'
 
 export function DashboardPage() {
   const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
   const { games, loading, error, fetchGames } = useChessComApi()
 
-  const decodedUsername = decodeURIComponent(username ?? '')
-
   useEffect(() => {
-    if (decodedUsername) {
-      fetchGames(decodedUsername)
+    if (username) {
+      fetchGames(username)
     }
-  }, [decodedUsername, fetchGames])
+  }, [username, fetchGames])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+      <div className="border-b border-zinc-900">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-white hover:bg-zinc-900"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500 text-sm">♟</span>
-              <h1 className="font-bold text-white text-lg">{decodedUsername}</h1>
-            </div>
-            <p className="text-xs text-zinc-500">Last 10 games</p>
+          <div>
+            <h1 className="text-lg font-semibold">{username}</h1>
+            <p className="text-xs text-zinc-500">Recent games</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => fetchGames(decodedUsername)}
-            disabled={loading}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Content */}
-      <main className="max-w-2xl mx-auto px-6 py-6 space-y-3">
-        {/* Loading skeletons */}
-        {loading &&
-          Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-zinc-800 p-4 flex items-center gap-4"
-            >
-              <Skeleton className="w-1 h-12 rounded-full bg-zinc-800" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-48 bg-zinc-800" />
-                <Skeleton className="h-3 w-32 bg-zinc-800" />
-              </div>
-              <Skeleton className="h-9 w-20 bg-zinc-800" />
-            </div>
-          ))}
-
-        {/* Error state */}
-        {error && !loading && (
-          <div className="rounded-lg border border-red-900/50 bg-red-900/10 p-6 text-center">
-            <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-            <p className="text-red-400 font-medium mb-1">Failed to load games</p>
-            <p className="text-red-400/70 text-sm mb-4">{error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchGames(decodedUsername)}
-              className="border-red-800 text-red-400 hover:bg-red-900/20"
-            >
-              Try again
-            </Button>
-          </div>
-        )}
-
-        {/* Games list */}
-        {!loading && !error && games.length > 0 && (
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
+        {loading && (
           <>
-            {games.map((game) => (
-              <GameCard key={game.id} game={game} />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full bg-zinc-900 rounded-lg" />
             ))}
           </>
         )}
 
-        {/* Empty state */}
-        {!loading && !error && games.length === 0 && (
-          <div className="text-center py-16 text-zinc-600">
-            <div className="text-4xl mb-4">♙</div>
-            <p>No games found.</p>
+        {error && (
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/20 border border-red-900/40 text-red-400">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-sm">Error loading games</p>
+              <p className="text-xs mt-0.5 text-red-400/70">{error}</p>
+            </div>
           </div>
         )}
-      </main>
+
+        {!loading && !error && games.length === 0 && (
+          <p className="text-zinc-500 text-center py-8 text-sm">No games found.</p>
+        )}
+
+        {games.map((game) => (
+          <GameCard key={game.id} game={game} />
+        ))}
+      </div>
     </div>
   )
 }

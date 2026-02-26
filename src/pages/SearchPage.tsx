@@ -1,49 +1,44 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
 
+const LS_KEY = 'sungam_username'
+
 export function SearchPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState(
-    () => localStorage.getItem('chesscom_username') ?? ''
-  )
+  const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '')
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = username.trim()
     if (!trimmed) return
-    localStorage.setItem('chesscom_username', trimmed)
-    navigate(`/dashboard/${encodeURIComponent(trimmed)}`)
+    localStorage.setItem(LS_KEY, trimmed)
+    navigate(`/dashboard/${trimmed}`)
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      {/* Logo / Brand */}
-      <div className="mb-12 text-center animate-fade-in">
-        <div className="text-6xl mb-4 select-none">♟</div>
-        <h1 className="text-5xl font-bold tracking-tight text-white mb-2">
-          Sungam
-        </h1>
-        <p className="text-zinc-400 text-lg font-light">
-          Chess game analysis. Powered by Stockfish.
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 px-4">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo / title */}
+        <div className="text-center space-y-2">
+          <h1 className="text-5xl font-bold tracking-tight text-white">
+            Sungam
+          </h1>
+          <p className="text-zinc-500 text-sm">Chess.com game review</p>
+        </div>
 
-      {/* Search form */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md animate-slide-up"
-      >
-        <div className="relative flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+        {/* Search form */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <Input
+              type="text"
+              placeholder="Chess.com username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Chess.com username"
-              className="pl-10 h-12 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-500 text-base"
+              className="pl-10 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-600"
               autoFocus
               autoComplete="off"
               spellCheck={false}
@@ -51,21 +46,12 @@ export function SearchPage() {
           </div>
           <Button
             type="submit"
-            size="lg"
-            className="h-12 px-6 bg-white text-black hover:bg-zinc-100 font-semibold"
+            className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-semibold"
             disabled={!username.trim()}
           >
-            Analyze
+            Analyze Games
           </Button>
-        </div>
-        <p className="text-center text-xs text-zinc-600 mt-4">
-          Fetches your last 10 games from Chess.com Public API
-        </p>
-      </form>
-
-      {/* Footer */}
-      <div className="absolute bottom-6 text-xs text-zinc-700">
-        Magnus backwards.
+        </form>
       </div>
     </div>
   )

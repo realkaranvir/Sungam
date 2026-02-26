@@ -1,9 +1,53 @@
 import { useState, useCallback } from 'react'
-import type { ChessComGame, ProcessedGame } from '@/types'
+import type { ProcessedGame, ChessComArchive, ChessComRawGame } from '@/types'
 
-const BASE_URL = 'https://api.chess.com/pub'
-const HEADERS = {
-  'User-Agent': 'Sungam Chess Review App - github.com/sungam (chess-review-tool)',
+function processGame(game: ChessComRawGame, username: string): ProcessedGame {
+  const userLower = username.toLowerCase()
+  const isWhite = game.white.username.toLowerCase() === userLower
+  const userSide = isWhite ? game.white : game.black
+  const opponentSide = isWhite ? game.black : game.white
+
+  let result: 'win' | 'loss' | 'draw'
+  if (userSide.result === 'win') result = 'win'
+  else if (
+    userSide.result === 'checkmated' ||
+    userSide.result === 'resigned' ||
+    userSide.result === 'timeout' ||
+    userSide.result === 'abandoned' ||
+    userSide.result === 'lose' ||
+    userSide.result === 'timevsinsufficient'
+  ) {
+    result = 'loss'
+  } else {
+    result = 'draw'
+  }
+
+  const date = new Date(game.end_time * 1000)
+  const dateStr = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+  // Extract game ID from URL
+  const id = game.url.split('/').pop() ?? game.url
+
+  return {
+    id,
+    opponent: opponentSide.username,
+    opponentRating: opponentSide.rating,
+    userColor: isWhite ? 'white' : 'black',
+    result,
+    timeControl: game.time_control,
+    date: dateStr,
+    pgn: game.pgn,
+    userRating: userSide.rating,
+  }
+}
+
+function formatArchiveUrl(username: string, year: number, month: number): string {
+  const mm = String(month).padStart(2, '0')
+  return `https://api.chess.com/pub/player/${username}/games/${year}/${mm}`
 }
 
 export function useChessComApi() {
@@ -12,88 +56,60 @@ export function useChessComApi() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchGames = useCallback(async (username: string) => {
-    if (!username.trim()) return
     setLoading(true)
     setError(null)
     setGames([])
 
     try {
-      const archivesRes = await fetch(
-        `${BASE_URL}/player/${username.toLowerCase()}/games/archives`,
-        { headers: HEADERS }
-      )
+      const now = new Date()
+      const currentYear = now.getFullYear()
+      const currentMonth = now.getMonth() + 1 // 1-indexed
 
-      if (archivesRes.status === 404) {
-        throw new Error(`Player "${username}" not found on Chess.com`)
-      }
-      if (!archivesRes.ok) {
-        throw new Error('Failed to reach Chess.com API. Try again later.')
-      }
+      // Try current month, then previous month
+      const monthsToTry = [
+        { year: currentYear, month: currentMonth },
+        {
+          year: currentMonth === 1 ? currentYear - 1 : currentYear,
+          month: currentMonth === 1 ? 12 : currentMonth - 1,
+        },
+      ]
 
-      const { archives } = (await archivesRes.json()) as { archives: string[] }
+      let allGames: ChessComRawGame[] = []
 
-      if (!archives || archives.length === 0) {
-        throw new Error('No games found for this player.')
-      }
-
-      // Try to get enough games — work backwards through archives
-      let allGames: ChessComGame[] = []
-      for (let i = archives.length - 1; i >= 0 && allGames.length < 10; i--) {
-        const gamesRes = await fetch(archives[i], { headers: HEADERS })
-        if (!gamesRes.ok) continue
-        const { games: rawGames } = (await gamesRes.json()) as {
-          games: ChessComGame[]
+      for (const { year, month } of monthsToTry) {
+        const url = formatArchiveUrl(username.toLowerCase(), year, month)
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'User-Agent': 'Sungam Chess Review App',
+            },
+          })
+          if (!res.ok) continue
+          const data: ChessComArchive = await res.json()
+          if (data.games && data.games.length > 0) {
+            allGames = [...allGames, ...data.games]
+          }
+        } catch {
+          // silently skip failed months
         }
-        allGames = [...rawGames, ...allGames]
       }
 
-      const last10 = allGames.slice(-10).reverse()
-      setGames(last10.map((g) => processGame(g, username)))
+      if (allGames.length === 0) {
+        setError(`No games found for "${username}". Make sure the username is correct.`)
+        return
+      }
+
+      // Sort by end_time descending, take last 10
+      const sorted = [...allGames].sort((a, b) => b.end_time - a.end_time)
+      const last10 = sorted.slice(0, 10)
+      const processed = last10.map((g) => processGame(g, username))
+      setGames(processed)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred.')
+      setError(err instanceof Error ? err.message : 'Failed to fetch games')
     } finally {
       setLoading(false)
     }
   }, [])
 
   return { games, loading, error, fetchGames }
-}
-
-function processGame(game: ChessComGame, username: string): ProcessedGame {
-  const isWhite =
-    game.white.username.toLowerCase() === username.toLowerCase()
-  const userSide = isWhite ? game.white : game.black
-  const opponentSide = isWhite ? game.black : game.white
-
-  const result: 'win' | 'loss' | 'draw' =
-    userSide.result === 'win'
-      ? 'win'
-      : opponentSide.result === 'win'
-      ? 'loss'
-      : 'draw'
-
-  const timeControl = formatTimeControl(game.time_control)
-
-  return {
-    id: game.url.split('/').pop() ?? game.url,
-    opponent: opponentSide.username,
-    opponentRating: opponentSide.rating,
-    userColor: isWhite ? 'white' : 'black',
-    result,
-    timeControl,
-    date: new Date(game.end_time * 1000),
-    pgn: game.pgn,
-    userRating: userSide.rating,
-  }
-}
-
-function formatTimeControl(tc: string): string {
-  if (tc === '-') return 'Unlimited'
-  const parts = tc.split('+')
-  const base = parseInt(parts[0])
-  const increment = parts[1] ? parseInt(parts[1]) : 0
-
-  if (base >= 3600) return `${base / 3600}h${increment ? `+${increment}` : ''}`
-  if (base >= 60) return `${base / 60}m${increment ? `+${increment}` : ''}`
-  return tc
 }

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
+import type { AnalyzedMove, ParsedMove } from '@/types'
 import { cn } from '@/lib/utils'
-import type { AnalyzedMove } from '@/types'
 
 interface MoveListProps {
-  moves: { san: string; color: string }[]
-  analyzedMoves: AnalyzedMove[]
-  currentMoveIndex: number
+  moves: ParsedMove[]
+  analyzedMoves: (AnalyzedMove | null)[]
+  currentMoveIndex: number  // -1 = initial position
   onMoveClick: (index: number) => void
 }
 
@@ -19,89 +19,68 @@ export function MoveList({
 }: MoveListProps) {
   const activeRef = useRef<HTMLButtonElement | null>(null)
 
+  // Auto-scroll to current move
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [currentMoveIndex])
 
-  const movePairs: { white: number; black: number | null }[] = []
+  // Pair moves into rows: [white, black]
+  const movePairs: Array<{ index: number; move: ParsedMove; analyzed: AnalyzedMove | null }[]> = []
+
   for (let i = 0; i < moves.length; i += 2) {
-    movePairs.push({ white: i, black: i + 1 < moves.length ? i + 1 : null })
+    const pair = []
+    pair.push({ index: i, move: moves[i], analyzed: analyzedMoves[i] ?? null })
+    if (i + 1 < moves.length) {
+      pair.push({ index: i + 1, move: moves[i + 1], analyzed: analyzedMoves[i + 1] ?? null })
+    }
+    movePairs.push(pair)
   }
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-3 space-y-0.5">
-        {movePairs.map((pair, pairIdx) => (
-          <div key={pairIdx} className="flex items-center gap-1 rounded">
-            <span className="w-6 text-right text-xs text-zinc-600 font-mono shrink-0 pr-1">
-              {pairIdx + 1}.
+      <div className="p-2 space-y-0.5">
+        {movePairs.map((pair, pairIndex) => (
+          <div key={pairIndex} className="flex items-center gap-1">
+            {/* Move number */}
+            <span className="text-xs text-zinc-500 w-7 shrink-0 text-right">
+              {pairIndex + 1}.
             </span>
 
-            <MoveButton
-              index={pair.white}
-              moves={moves}
-              analyzedMoves={analyzedMoves}
-              currentMoveIndex={currentMoveIndex}
-              onMoveClick={onMoveClick}
-              activeRef={pair.white === currentMoveIndex ? activeRef : undefined}
-            />
+            {/* White and black moves */}
+            {pair.map(({ index, move, analyzed }) => {
+              const isActive = index === currentMoveIndex
+              return (
+                <button
+                  key={index}
+                  ref={isActive ? activeRef : null}
+                  onClick={() => onMoveClick(index)}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded text-sm font-mono transition-colors flex-1 text-left',
+                    isActive
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-300 hover:bg-zinc-800 hover:text-white',
+                  )}
+                >
+                  <span>{move.san}</span>
+                  {analyzed && (
+                    <MoveClassificationBadge
+                      classification={analyzed.classification}
+                      className="ml-auto"
+                    />
+                  )}
+                </button>
+              )
+            })}
 
-            {pair.black !== null ? (
-              <MoveButton
-                index={pair.black}
-                moves={moves}
-                analyzedMoves={analyzedMoves}
-                currentMoveIndex={currentMoveIndex}
-                onMoveClick={onMoveClick}
-                activeRef={pair.black === currentMoveIndex ? activeRef : undefined}
-              />
-            ) : (
-              <div className="flex-1" />
-            )}
+            {/* Pad last row if only one move */}
+            {pair.length === 1 && <div className="flex-1" />}
           </div>
         ))}
+
+        {moves.length === 0 && (
+          <p className="text-zinc-500 text-sm text-center py-4">No moves</p>
+        )}
       </div>
     </ScrollArea>
-  )
-}
-
-function MoveButton({
-  index,
-  moves,
-  analyzedMoves,
-  currentMoveIndex,
-  onMoveClick,
-  activeRef,
-}: {
-  index: number
-  moves: { san: string }[]
-  analyzedMoves: AnalyzedMove[]
-  currentMoveIndex: number
-  onMoveClick: (index: number) => void
-  activeRef?: React.RefObject<HTMLButtonElement | null>
-}) {
-  const move = moves[index]
-  const analyzed = analyzedMoves[index]
-  const isActive = index === currentMoveIndex
-
-  return (
-    <button
-      ref={activeRef as React.RefObject<HTMLButtonElement>}
-      onClick={() => onMoveClick(index)}
-      className={cn(
-        'flex items-center gap-1 flex-1 px-2 py-1 rounded text-sm font-mono text-left transition-colors',
-        isActive
-          ? 'bg-zinc-700 text-white'
-          : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
-      )}
-    >
-      <span className="truncate">{move.san}</span>
-      {analyzed && (
-        <MoveClassificationBadge
-          classification={analyzed.classification}
-          cpLoss={analyzed.cpLoss}
-        />
-      )}
-    </button>
   )
 }

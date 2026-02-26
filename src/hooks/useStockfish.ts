@@ -1,85 +1,153 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import type { EngineInfo } from '@/types'
-import { parseEngineOutput } from '@/lib/parseEngineOutput'
+import { parseInfoLine } from '@/lib/parseEngineOutput'
 
-type InfoHandler = (info: EngineInfo) => void
-type BestMoveHandler = (move: string) => void
-
-const wasmSupported =
-  typeof WebAssembly === 'object' &&
-  WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+interface PendingAnalysis {
+  resolve: (info: EngineInfo) => void
+  reject: (err: Error) => void
+  lines: string[]
+  bestAtDepth: Map<number, EngineInfo>
+  secondAtDepth: Map<number, { score: number; depth: number }>
+}
 
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null)
-  const [isReady, setIsReady] = useState(false)
-  const infoHandlerRef = useRef<InfoHandler | null>(null)
-  const bestMoveHandlerRef = useRef<BestMoveHandler | null>(null)
-  // When true, the next bestmove is from a stop command — ignore it
-  const ignoreBestMoveRef = useRef(false)
+  const pendingRef = useRef<PendingAnalysis | null>(null)
+  const readyRef = useRef(false)
+  const readyResolversRef = useRef<Array<() => void>>([])
 
   useEffect(() => {
-    const worker = new Worker(wasmSupported ? '/stockfish.wasm.js' : '/stockfish.js')
-
-    worker.onmessage = (e: MessageEvent) => {
-      const line = e.data as string
-      if (line === 'readyok') {
-        setIsReady(true)
-      }
-      if (line.startsWith('bestmove') && ignoreBestMoveRef.current) {
-        ignoreBestMoveRef.current = false
-        return
-      }
-      parseEngineOutput(line, infoHandlerRef.current, bestMoveHandlerRef.current)
-    }
-
-    worker.postMessage('uci')
-    worker.postMessage('setoption name MultiPV value 2')
-    worker.postMessage('setoption name Threads value 1')
-    worker.postMessage('isready')
+    const worker = new Worker('/stockfish-18-lite-single.js')
     workerRef.current = worker
 
-    return () => {
-      worker.postMessage('quit')
-      worker.terminate()
+    worker.onmessage = (e: MessageEvent<string>) => {
+      const line = e.data
+      if (typeof line !== 'string') return
+
+      // Engine ready
+      if (line === 'readyok') {
+        readyRef.current = true
+        readyResolversRef.current.forEach((r) => r())
+        readyResolversRef.current = []
+        return
+      }
+
+      // uciok - send setoption then isready
+      if (line === 'uciok') {
+        worker.postMessage('setoption name MultiPV value 2')
+        worker.postMessage('setoption name Threads value 1')
+        worker.postMessage('setoption name Hash value 16')
+        worker.postMessage('isready')
+        return
+      }
+
+      const pending = pendingRef.current
+      if (!pending) return
+
+      // Collect info lines
+      if (line.startsWith('info ')) {
+        pending.lines.push(line)
+        const parsed = parseInfoLine(line)
+        if (parsed) {
+          const { pvIndex, info } = parsed
+          if (pvIndex === 1) {
+            pending.bestAtDepth.set(info.depth, info)
+          } else if (pvIndex === 2) {
+            pending.secondAtDepth.set(info.depth, { score: info.score, depth: info.depth })
+          }
+        }
+      }
+
+      // Analysis complete
+      if (line.startsWith('bestmove')) {
+        const bestParts = line.split(' ')
+        const bestMoveUci = bestParts[1] ?? ''
+
+        // Find the deepest completed depth
+        let deepestDepth = 0
+        for (const depth of pending.bestAtDepth.keys()) {
+          if (depth > deepestDepth) deepestDepth = depth
+        }
+
+        const best = pending.bestAtDepth.get(deepestDepth)
+        const second = pending.secondAtDepth.get(deepestDepth)
+
+        if (best) {
+          const result: EngineInfo = {
+            ...best,
+            pv: bestMoveUci || best.pv,
+            secondScore: second ? second.score : null,
+          }
+          pending.resolve(result)
+        } else {
+          pending.reject(new Error('No engine output received'))
+        }
+        pendingRef.current = null
+      }
     }
+
+    worker.onerror = (e) => {
+      console.error('Stockfish worker error:', e)
+      const pending = pendingRef.current
+      if (pending) {
+        pending.reject(new Error(`Engine error: ${e.message}`))
+        pendingRef.current = null
+      }
+    }
+
+    // Initialize engine
+    worker.postMessage('uci')
+
+    return () => {
+      worker.terminate()
+      workerRef.current = null
+      readyRef.current = false
+    }
+  }, [])
+
+  const waitForReady = useCallback((): Promise<void> => {
+    if (readyRef.current) return Promise.resolve()
+    return new Promise((resolve) => {
+      readyResolversRef.current.push(resolve)
+    })
   }, [])
 
   const analyzePosition = useCallback(
-    (fen: string, depth = 16): Promise<{ info: EngineInfo; bestMove: string }> => {
-      return new Promise((resolve) => {
-        let bestInfo: EngineInfo | null = null
-        let secondScore: number | null = null
+    async (fen: string, depth = 16): Promise<EngineInfo> => {
+      const worker = workerRef.current
+      if (!worker) throw new Error('Engine not initialized')
 
-        infoHandlerRef.current = (info) => {
-          if (info.multipv === 1) bestInfo = info
-          if (info.multipv === 2) secondScore = info.score
+      await waitForReady()
+
+      // Cancel any pending analysis
+      if (pendingRef.current) {
+        worker.postMessage('stop')
+        pendingRef.current = null
+      }
+
+      return new Promise((resolve, reject) => {
+        pendingRef.current = {
+          resolve,
+          reject,
+          lines: [],
+          bestAtDepth: new Map(),
+          secondAtDepth: new Map(),
         }
 
-        bestMoveHandlerRef.current = (move) => {
-          const base = bestInfo ?? { depth: 0, score: 0, mate: null, pv: '', multipv: 1 }
-          resolve({
-            info: { ...base, secondScore },
-            bestMove: move,
-          })
-        }
-
-        // If a search is running, stop it — but ignore the bestmove that stop emits
-        if (bestInfo !== null || ignoreBestMoveRef.current) {
-          ignoreBestMoveRef.current = true
-          workerRef.current?.postMessage('stop')
-        }
-
-        workerRef.current?.postMessage(`position fen ${fen}`)
-        workerRef.current?.postMessage(`go depth ${depth}`)
+        worker.postMessage(`position fen ${fen}`)
+        worker.postMessage(`go depth ${depth}`)
       })
     },
-    []
+    [waitForReady],
   )
 
   const stop = useCallback(() => {
-    ignoreBestMoveRef.current = true
-    workerRef.current?.postMessage('stop')
+    const worker = workerRef.current
+    if (worker) {
+      worker.postMessage('stop')
+    }
+    pendingRef.current = null
   }, [])
 
-  return { isReady, analyzePosition, stop }
+  return { analyzePosition, stop }
 }

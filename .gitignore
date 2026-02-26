@@ -12,11 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Stockfish binaries (copied from npm at dev time via postinstall)
-public/stockfish.js
-public/stockfish.wasm
-public/stockfish.wasm.js
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
