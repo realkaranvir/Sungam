@@ -50,6 +50,13 @@ function formatArchiveUrl(username: string, year: number, month: number): string
   return `https://api.chess.com/pub/player/${username}/games/${year}/${mm}`
 }
 
+function getChessComRequestOptions(): RequestInit | undefined {
+  if (typeof window === 'undefined') {
+    return { headers: { 'User-Agent': 'Sungam Chess Review App' } }
+  }
+  return undefined
+}
+
 export function useChessComApi() {
   const [games, setGames] = useState<ProcessedGame[]>([])
   const [loading, setLoading] = useState(false)
@@ -79,11 +86,7 @@ export function useChessComApi() {
       for (const { year, month } of monthsToTry) {
         const url = formatArchiveUrl(username.toLowerCase(), year, month)
         try {
-          const res = await fetch(url, {
-            headers: {
-              'User-Agent': 'Sungam Chess Review App',
-            },
-          })
+          const res = await fetch(url, getChessComRequestOptions())
           if (!res.ok) continue
           const data: ChessComArchive = await res.json()
           if (data.games && data.games.length > 0) {
