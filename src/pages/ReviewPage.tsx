@@ -7,6 +7,7 @@ import { Chess } from 'chess.js'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useStockfish } from '@/hooks/useStockfish'
 import { classifyMove } from '@/lib/moveClassifier'
+import { getHikaruComment } from '@/lib/hikaruCoach'
 import { EvaluationBar } from '@/components/EvaluationBar'
 import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
@@ -233,6 +234,7 @@ export function ReviewPage() {
   }, [currentIndex, goTo, moves.length])
 
   const currentAnalyzed = currentIndex >= 0 ? (analyzedMoves[currentIndex] as AnalyzedMove | null) : null
+  const hikaruComment = currentAnalyzed ? getHikaruComment(currentAnalyzed.classification) : null
 
 
   // Eval bar score — Stockfish scores are from the side-to-move's perspective.
@@ -377,8 +379,20 @@ export function ReviewPage() {
 
             {/* Current move info */}
             {currentAnalyzed && (
-              <div className="mt-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
-                <div className="flex items-center gap-2">
+              <div className="mt-2 space-y-2">
+                {/* Hikaru Coach Section */}
+                <div className="p-3 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex gap-3 items-start">
+                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40">
+                    <span className="text-xl">🧔🏻‍♂️</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Hikaru Coach</p>
+                    <p className="text-sm text-indigo-100 italic">"{hikaruComment}"</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
+                  <div className="flex items-center gap-2">
                   <span className="text-sm font-mono font-medium">
                     {currentAnalyzed.moveNumber}
                     {currentAnalyzed.color === 'w' ? '.' : '...'}{' '}
@@ -401,6 +415,7 @@ export function ReviewPage() {
                     −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
                   </p>
                 )}
+                </div>
               </div>
             )}
 
