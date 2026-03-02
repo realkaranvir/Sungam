@@ -303,7 +303,7 @@ export function ReviewPage() {
                 <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex flex-col gap-3 items-center text-center">
                   <div className="w-24 h-24 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
                     <img 
-                      src="https://media.tenor.com/yS420K_f04wAAAAM/hikaru-nakamura-rubbing-hands.gif" 
+                      src="https://media1.tenor.com/m/yS420K_f04wAAAAC/hikaru-nakamura-rubbing-hands.gif" 
                       alt="Hikaru Nakamura"
                       className="w-full h-full object-cover"
                     />
@@ -445,7 +445,7 @@ export function ReviewPage() {
                 <div className="p-3 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex gap-3 items-start">
                   <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
                     <img 
-                      src="https://media.tenor.com/yS420K_f04wAAAAM/hikaru-nakamura-rubbing-hands.gif" 
+                      src="https://media1.tenor.com/m/yS420K_f04wAAAAC/hikaru-nakamura-rubbing-hands.gif" 
                       alt="Hikaru Nakamura"
                       className="w-full h-full object-cover"
                     />
