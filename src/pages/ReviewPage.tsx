@@ -12,7 +12,6 @@ import { EvaluationBar } from '@/components/EvaluationBar'
 import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
 import { AppHeader } from '@/components/AppHeader'
-import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
@@ -274,6 +273,8 @@ export function ReviewPage() {
         onBack={() => navigate(-1)}
         title={`vs ${game.opponent} (${game.opponentRating})`}
         subtitle={`${game.userColor === 'white' ? '♔' : '♚'} You · ${game.result} · ${game.date}`}
+        progress={isAnalyzing ? analysisProgress : undefined}
+        progressLabel="Analyzing with Stockfish..."
         right={
           <div className="hidden sm:flex items-center gap-1.5">
             {(Object.keys(META) as MoveClassification[]).map((key) => {
@@ -289,19 +290,6 @@ export function ReviewPage() {
           </div>
         }
       />
-
-      {/* Analysis progress */}
-      {isAnalyzing && (
-        <div className="shrink-0 px-4 pt-2">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-zinc-400">Analyzing with Stockfish...</span>
-              <span className="text-xs text-zinc-500 ml-auto">{analysisProgress}%</span>
-            </div>
-            <Progress value={analysisProgress} className="h-1 bg-zinc-800" />
-          </div>
-        </div>
-      )}
 
       {/* Main content */}
       <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">

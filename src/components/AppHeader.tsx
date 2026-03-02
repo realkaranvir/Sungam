@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, UserRound } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 
 const LS_KEY = 'sungam_username'
 
@@ -10,11 +11,21 @@ interface AppHeaderProps {
   title?: ReactNode
   subtitle?: ReactNode
   right?: ReactNode
+  progress?: number
+  progressLabel?: string
   /** If true, renders the full-width max-w-6xl container (ReviewPage). Defaults to max-w-2xl. */
   wide?: boolean
 }
 
-export function AppHeader({ onBack, title, subtitle, right, wide = false }: AppHeaderProps) {
+export function AppHeader({ 
+  onBack, 
+  title, 
+  subtitle, 
+  right, 
+  progress,
+  progressLabel,
+  wide = false 
+}: AppHeaderProps) {
   const navigate = useNavigate()
 
   const handleChangeUser = () => {
@@ -23,7 +34,7 @@ export function AppHeader({ onBack, title, subtitle, right, wide = false }: AppH
   }
 
   return (
-    <div className="border-b border-zinc-900 shrink-0">
+    <div className="border-b border-zinc-900 shrink-0 relative">
       <div className={`${wide ? 'max-w-6xl' : 'max-w-2xl'} mx-auto px-4 py-3 flex items-center gap-3`}>
         {onBack && (
           <Button
@@ -55,6 +66,19 @@ export function AppHeader({ onBack, title, subtitle, right, wide = false }: AppH
           <UserRound className="h-4 w-4" />
         </Button>
       </div>
+
+      {progress !== undefined && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5">
+          <div className="max-w-6xl mx-auto px-4">
+             {progressLabel && (
+               <div className="absolute bottom-1.5 right-4 text-[10px] text-zinc-500 bg-zinc-950/80 px-1 rounded">
+                 {progressLabel} {progress}%
+               </div>
+             )}
+             <Progress value={progress} className="h-full rounded-none bg-transparent" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
