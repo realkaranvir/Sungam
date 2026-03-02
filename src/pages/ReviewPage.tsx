@@ -235,6 +235,25 @@ export function ReviewPage() {
   const currentAnalyzed = currentIndex >= 0 ? (analyzedMoves[currentIndex] as AnalyzedMove | null) : null
   const hikaruComment = currentAnalyzed ? getHikaruComment(currentAnalyzed.classification) : null
 
+  // Determine Hikaru Coach avatar based on move classification
+  const getHikaruAvatar = (classification?: MoveClassification) => {
+    if (!classification) return '/assets/hikaru/good.gif'
+    switch (classification) {
+      case 'brilliant':
+      case 'great':
+      case 'best':
+        return '/assets/hikaru/brilliant.gif'
+      case 'good':
+      case 'inaccuracy':
+        return '/assets/hikaru/good.gif'
+      case 'mistake':
+      case 'blunder':
+        return '/assets/hikaru/bad.gif'
+      default:
+        return '/assets/hikaru/good.gif'
+    }
+  }
+  const hikaruAvatar = getHikaruAvatar(currentAnalyzed?.classification)
 
   // Eval bar score — Stockfish scores are from the side-to-move's perspective.
   // Convert to white's perspective: negate when it's black's turn in the current position.
@@ -303,7 +322,7 @@ export function ReviewPage() {
                 <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex flex-col gap-3 items-center text-center">
                   <div className="w-24 h-24 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
                     <img 
-                      src="https://media1.tenor.com/m/yS420K_f04wAAAAC/hikaru-nakamura-rubbing-hands.gif" 
+                      src={hikaruAvatar} 
                       alt="Hikaru Nakamura"
                       className="w-full h-full object-cover"
                     />
@@ -445,7 +464,7 @@ export function ReviewPage() {
                 <div className="p-3 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex gap-3 items-start">
                   <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
                     <img 
-                      src="https://media1.tenor.com/m/yS420K_f04wAAAAC/hikaru-nakamura-rubbing-hands.gif" 
+                      src={hikaruAvatar} 
                       alt="Hikaru Nakamura"
                       className="w-full h-full object-cover"
                     />
