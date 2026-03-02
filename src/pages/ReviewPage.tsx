@@ -34,6 +34,7 @@ export function ReviewPage() {
   const navigate = useNavigate()
   useParams() // gameId present in URL but game data comes via router state
   const game = location.state?.game as ProcessedGame | undefined
+  const userColor = game?.userColor ?? 'white'
 
   const { moves, initialFen } = useChessGame(game?.pgn ?? '')
   const { analyzePosition, stop } = useStockfish()
@@ -142,7 +143,7 @@ export function ReviewPage() {
           move.color,
           infoBeforeMove,
           move.uci,
-          game.userColor,
+          userColor,
           move.fenBefore,
         )
 
