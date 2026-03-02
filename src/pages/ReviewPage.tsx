@@ -306,7 +306,80 @@ export function ReviewPage() {
       {/* Main content */}
       <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">
 
-        {/* Board column — shrinks to board size on desktop, centered */}
+        {/* Left Column: Analysis & Engine (Desktop only) */}
+        <div className="hidden lg:flex flex-col gap-4 w-full lg:max-w-xs lg:shrink-0 overflow-y-auto">
+           {/* Current move info */}
+           {currentAnalyzed && (
+              <div className="space-y-4">
+                {/* Hikaru Coach Section */}
+                <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex flex-col gap-3 items-center text-center">
+                  <div className="w-24 h-24 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
+                    <img 
+                      src="https://media.tenor.com/yS420K_f04wAAAAM/hikaru-nakamura-rubbing-hands.gif" 
+                      alt="Hikaru Nakamura"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Hikaru Coach</p>
+                    <p className="text-sm text-indigo-100 italic">"{hikaruComment}"</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-medium">
+                      {currentAnalyzed.moveNumber}
+                      {currentAnalyzed.color === 'w' ? '.' : '...'}{' '}
+                      {currentAnalyzed.san}
+                    </span>
+                    <MoveClassificationBadge
+                      classification={currentAnalyzed.classification}
+                      showLabel
+                    />
+                  </div>
+                  {currentAnalyzed.classification !== 'best' &&
+                    currentAnalyzed.classification !== 'brilliant' &&
+                    currentAnalyzed.bestMoveSan && (
+                      <p className="text-xs text-zinc-500">
+                        Best: <span className="text-zinc-300 font-mono">{currentAnalyzed.bestMoveSan}</span>
+                      </p>
+                    )}
+                  {currentAnalyzed.cpLoss > 0 && (
+                    <p className="text-xs text-zinc-600">
+                      −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Top engine lines */}
+            {currentEngineInfo && currentEngineInfo.lines.length > 0 && (
+              <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5">
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Engine Lines</p>
+                {currentEngineInfo.lines.map((engineLine) => {
+                  const lineCp = engineLine.score * sideMultiplier
+                  const lineMate = engineLine.mate !== null ? engineLine.mate * sideMultiplier : null
+                  const scoreStr = formatScore(lineCp, lineMate)
+                  const san = pvToSan(currentFen, engineLine.moves)
+                  return (
+                    <div key={engineLine.index} className="flex flex-col gap-0.5 min-w-0 pb-1.5 border-b border-zinc-800/50 last:border-0 last:pb-0">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-zinc-600 uppercase">Line {engineLine.index}</span>
+                        <span className={`text-xs font-mono tabular-nums ${lineCp >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {scoreStr}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-400 font-mono break-words">{san}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+        </div>
+
+        {/* Center Column: Board */}
         <div className="flex flex-col items-center gap-2 w-full lg:w-auto lg:shrink-0 min-h-0">
           {/* Eval bar + board, bar matches board height */}
           <div className="flex items-stretch gap-2 flex-1 min-h-0">
@@ -339,7 +412,7 @@ export function ReviewPage() {
             </div>
           </div>
 
-          {/* Controls + move info — constrained to board width on desktop */}
+          {/* Controls + mobile-only info — constrained to board width on desktop */}
           <div style={{ width: boardSize }}>
             {/* Navigation controls */}
             <div className="flex items-center justify-center gap-2">
@@ -377,13 +450,17 @@ export function ReviewPage() {
               </Button>
             </div>
 
-            {/* Current move info */}
+            {/* Current move info (Mobile only) */}
             {currentAnalyzed && (
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 space-y-2 lg:hidden">
                 {/* Hikaru Coach Section */}
                 <div className="p-3 rounded-lg bg-indigo-950/30 border border-indigo-500/20 flex gap-3 items-start">
-                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40">
-                    <span className="text-xl">🧔🏻‍♂️</span>
+                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/40 overflow-hidden">
+                    <img 
+                      src="https://media.tenor.com/yS420K_f04wAAAAM/hikaru-nakamura-rubbing-hands.gif" 
+                      alt="Hikaru Nakamura"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Hikaru Coach</p>
@@ -419,9 +496,9 @@ export function ReviewPage() {
               </div>
             )}
 
-            {/* Top engine lines */}
+            {/* Top engine lines (Mobile only) */}
             {currentEngineInfo && currentEngineInfo.lines.length > 0 && (
-              <div className="mt-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5">
+              <div className="mt-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5 lg:hidden">
                 <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Engine Lines</p>
                 {currentEngineInfo.lines.map((engineLine) => {
                   const lineCp = engineLine.score * sideMultiplier
@@ -443,7 +520,7 @@ export function ReviewPage() {
           </div>
         </div>
 
-        {/* Move list — fills remaining width up to a max, then centers */}
+        {/* Right Column: Move list — fills remaining width up to a max, then centers */}
         <div className="w-full flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch h-64 lg:h-auto">
           <div className="p-3 border-b border-zinc-800 shrink-0">
             <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Moves</h3>
