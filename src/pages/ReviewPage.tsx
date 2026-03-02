@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
+import { formatScore } from '@/lib/moveClassifier'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
@@ -26,6 +27,23 @@ function uciToSan(fen: string, uci: string): string {
     return move?.san ?? uci
   } catch {
     return uci
+  }
+}
+
+// Convert a UCI PV sequence into space-separated SAN, limited to maxPlies
+function pvToSan(fen: string, uciMoves: string[], maxPlies = 4): string {
+  try {
+    const chess = new Chess(fen)
+    const parts: string[] = []
+    for (let i = 0; i < Math.min(uciMoves.length, maxPlies); i++) {
+      const uci = uciMoves[i]
+      const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] })
+      if (!move) break
+      parts.push(move.san)
+    }
+    return parts.join(' ')
+  } catch {
+    return uciMoves.slice(0, maxPlies).join(' ')
   }
 }
 
@@ -110,7 +128,7 @@ export function ReviewPage() {
           engineResults.push(info)
         } catch {
           // Use a neutral score if analysis fails
-          engineResults.push({ depth: 0, score: 0, mate: null, pv: '', secondScore: null })
+          engineResults.push({ depth: 0, score: 0, mate: null, pv: '', secondScore: null, lines: [] })
         }
 
         // Progress: we've analyzed i+1 positions out of fensToAnalyze.length
@@ -383,6 +401,28 @@ export function ReviewPage() {
                     −{(currentAnalyzed.cpLoss / 100).toFixed(2)} pawns
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Top engine lines */}
+            {currentEngineInfo && currentEngineInfo.lines.length > 0 && (
+              <div className="mt-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5">
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Engine Lines</p>
+                {currentEngineInfo.lines.map((engineLine) => {
+                  const lineCp = engineLine.score * sideMultiplier
+                  const lineMate = engineLine.mate !== null ? engineLine.mate * sideMultiplier : null
+                  const scoreStr = formatScore(lineCp, lineMate)
+                  const san = pvToSan(currentFen, engineLine.moves)
+                  return (
+                    <div key={engineLine.index} className="flex items-baseline gap-2 min-w-0">
+                      <span className="text-xs text-zinc-600 shrink-0 w-10">Line {engineLine.index}</span>
+                      <span className={`text-xs font-mono shrink-0 tabular-nums ${lineCp >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {scoreStr}
+                      </span>
+                      <span className="text-xs text-zinc-400 font-mono truncate">{san}</span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

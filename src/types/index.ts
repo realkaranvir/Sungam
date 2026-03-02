@@ -7,12 +7,20 @@ export type MoveClassification =
   | 'mistake'
   | 'blunder'
 
+export interface EngineLine {
+  index: number       // multipv index: 1, 2, or 3
+  score: number       // centipawns, side-to-move perspective
+  mate: number | null
+  moves: string[]     // full UCI move list
+}
+
 export interface EngineInfo {
   depth: number
-  score: number       // centipawns, white perspective
+  score: number       // centipawns, side-to-move perspective
   mate: number | null
   pv: string          // best move UCI
   secondScore: number | null  // for brilliant detection
+  lines: EngineLine[] // top engine variations (up to 3)
 }
 
 export interface AnalyzedMove {

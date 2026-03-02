@@ -1,13 +1,18 @@
 import { useEffect, useRef, useCallback } from 'react'
-import type { EngineInfo } from '@/types'
+import type { EngineInfo, EngineLine } from '@/types'
 import { parseInfoLine } from '@/lib/parseEngineOutput'
+
+interface StoredLine {
+  score: number
+  mate: number | null
+  pvMoves: string[]
+}
 
 interface PendingAnalysis {
   resolve: (info: EngineInfo) => void
   reject: (err: Error) => void
-  lines: string[]
-  bestAtDepth: Map<number, EngineInfo>
-  secondAtDepth: Map<number, { score: number; depth: number }>
+  // depth -> pvIndex -> best stored line at that depth
+  linesAtDepth: Map<number, Map<number, StoredLine>>
 }
 
 export function useStockfish() {
@@ -34,7 +39,7 @@ export function useStockfish() {
 
       // uciok - send setoption then isready
       if (line === 'uciok') {
-        worker.postMessage('setoption name MultiPV value 2')
+        worker.postMessage('setoption name MultiPV value 3')
         worker.postMessage('setoption name Threads value 1')
         worker.postMessage('setoption name Hash value 16')
         worker.postMessage('isready')
@@ -44,17 +49,17 @@ export function useStockfish() {
       const pending = pendingRef.current
       if (!pending) return
 
-      // Collect info lines
+      // Collect info lines and store per depth/pvIndex
       if (line.startsWith('info ')) {
-        pending.lines.push(line)
         const parsed = parseInfoLine(line)
         if (parsed) {
-          const { pvIndex, info } = parsed
-          if (pvIndex === 1) {
-            pending.bestAtDepth.set(info.depth, info)
-          } else if (pvIndex === 2) {
-            pending.secondAtDepth.set(info.depth, { score: info.score, depth: info.depth })
+          const { pvIndex, info, pvMoves } = parsed
+          let depthMap = pending.linesAtDepth.get(info.depth)
+          if (!depthMap) {
+            depthMap = new Map()
+            pending.linesAtDepth.set(info.depth, depthMap)
           }
+          depthMap.set(pvIndex, { score: info.score, mate: info.mate, pvMoves })
         }
       }
 
@@ -63,20 +68,38 @@ export function useStockfish() {
         const bestParts = line.split(' ')
         const bestMoveUci = bestParts[1] ?? ''
 
-        // Find the deepest completed depth
+        // Find the deepest depth that has a pvIndex=1 entry
         let deepestDepth = 0
-        for (const depth of pending.bestAtDepth.keys()) {
-          if (depth > deepestDepth) deepestDepth = depth
+        for (const [depth, pvMap] of pending.linesAtDepth) {
+          if (pvMap.has(1) && depth > deepestDepth) deepestDepth = depth
         }
 
-        const best = pending.bestAtDepth.get(deepestDepth)
-        const second = pending.secondAtDepth.get(deepestDepth)
+        const depthMap = pending.linesAtDepth.get(deepestDepth)
+        const best = depthMap?.get(1)
+        const secondData = depthMap?.get(2)
 
         if (best) {
+          // Build the lines array (up to 3)
+          const lines: EngineLine[] = []
+          for (let idx = 1; idx <= 3; idx++) {
+            const lineData = depthMap?.get(idx)
+            if (lineData) {
+              lines.push({
+                index: idx,
+                score: lineData.score,
+                mate: lineData.mate,
+                moves: lineData.pvMoves,
+              })
+            }
+          }
+
           const result: EngineInfo = {
-            ...best,
-            pv: bestMoveUci || best.pv,
-            secondScore: second ? second.score : null,
+            depth: deepestDepth,
+            score: best.score,
+            mate: best.mate,
+            pv: bestMoveUci || best.pvMoves[0] || '',
+            secondScore: secondData ? secondData.score : null,
+            lines,
           }
           pending.resolve(result)
         } else {
@@ -129,9 +152,7 @@ export function useStockfish() {
         pendingRef.current = {
           resolve,
           reject,
-          lines: [],
-          bestAtDepth: new Map(),
-          secondAtDepth: new Map(),
+          linesAtDepth: new Map(),
         }
 
         worker.postMessage(`position fen ${fen}`)
