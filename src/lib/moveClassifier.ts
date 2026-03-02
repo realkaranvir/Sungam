@@ -1,4 +1,5 @@
 import type { MoveClassification, EngineInfo } from '@/types'
+import { Chess } from 'chess.js'
 
 // Piece values in centipawns for sacrifice detection
 const PIECE_VALUES: Record<string, number> = {
@@ -10,57 +11,41 @@ const PIECE_VALUES: Record<string, number> = {
 }
 
 /**
- * Check if a UCI move is a sacrifice — the played move gives up material
- * that is worth at least a minor piece (300cp), by moving onto a square
- * occupied by a lower-value or no-value piece.
- *
- * A sacrifice means: we capture nothing (moving into danger) or capture
- * something worth less than what we're moving. We approximate by checking
- * if the destination square has no enemy piece (pure sacrifice) OR the
- * captured piece is worth less than the moving piece.
+ * Check if a UCI move is a sacrifice.
+ * A move is a sacrifice if the piece moved is worth more than the piece captured
+ * AND the destination square is attacked by the opponent after the move.
  */
 function isSacrifice(fenBefore: string, uciMove: string): boolean {
-  const from = uciMove.slice(0, 2)
-  const to   = uciMove.slice(2, 4)
+  try {
+    const game = new Chess(fenBefore)
+    const move = game.move({
+      from: uciMove.slice(0, 2),
+      to: uciMove.slice(2, 4),
+      promotion: uciMove.length === 5 ? uciMove[4] : undefined
+    })
 
-  // Parse board from FEN
-  const boardPart = fenBefore.split(' ')[0]
-  if (!boardPart) return false
+    if (!move) return false
 
-  const board: (string | null)[][] = []
-  for (const rank of boardPart.split('/')) {
-    const row: (string | null)[] = []
-    for (const ch of rank) {
-      if (ch >= '1' && ch <= '8') {
-        for (let i = 0; i < parseInt(ch); i++) row.push(null)
-      } else {
-        row.push(ch)
-      }
-    }
-    board.push(row)
+    // Value of the piece we moved
+    const movingValue = PIECE_VALUES[move.piece.toLowerCase()] ?? 0
+    // Value of the piece we captured (if any)
+    const capturedValue = move.captured ? (PIECE_VALUES[move.captured.toLowerCase()] ?? 0) : 0
+
+    // A sacrifice only makes sense if we're moving a major/minor piece
+    if (movingValue < 300) return false
+
+    // Check if the destination square is now attacked by the opponent.
+    // In chess.js, isAttacked checks if a square is attacked by a certain color.
+    // The turn has already swapped to the opponent after game.move().
+    const isAttackedByOpponent = game.isAttacked(move.to, game.turn())
+
+    // If the square is NOT attacked, it's just a safe move or taking a hung piece.
+    // If it IS attacked, it's a sacrifice if we gave up more value than we took.
+    return isAttackedByOpponent && (movingValue > capturedValue)
+  } catch (e) {
+    console.error('Error in isSacrifice:', e)
+    return false
   }
-
-  const fileToIdx = (f: string) => f.charCodeAt(0) - 'a'.charCodeAt(0)
-  const rankToIdx = (r: string) => 8 - parseInt(r) // rank '8' = row 0
-
-  const fromFile = fileToIdx(from[0])
-  const fromRank = rankToIdx(from[1])
-  const toFile   = fileToIdx(to[0])
-  const toRank   = rankToIdx(to[1])
-
-  if (fromRank < 0 || fromRank > 7 || toRank < 0 || toRank > 7) return false
-
-  const movingPiece = board[fromRank]?.[fromFile]
-  const targetPiece = board[toRank]?.[toFile]
-
-  if (!movingPiece) return false
-
-  const movingValue = PIECE_VALUES[movingPiece.toLowerCase()] ?? 0
-  const capturedValue = targetPiece ? (PIECE_VALUES[targetPiece.toLowerCase()] ?? 0) : 0
-
-  // A sacrifice: moving a piece worth more than what we capture (including capturing nothing)
-  // Minimum: moving piece must be at least a minor piece (not just a pawn sac — those are common)
-  return movingValue >= 300 && capturedValue < movingValue
 }
 
 /**
@@ -71,6 +56,7 @@ function isSacrifice(fenBefore: string, uciMove: string): boolean {
  * @param color         Who made the move
  * @param engineBefore  Engine output for the position before the move (MultiPV 2)
  * @param playedMoveUci The UCI move that was actually played
+ * @param userColor     Karan's chosen color
  * @param fenBefore     FEN of the position before the move (for sacrifice detection)
  */
 export function classifyMove(
@@ -79,6 +65,7 @@ export function classifyMove(
   color: 'w' | 'b',
   engineBefore: EngineInfo,
   playedMoveUci: string,
+  userColor: 'white' | 'black',
   fenBefore?: string,
 ): MoveClassification {
   const winPct = (cp: number) => 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1)
@@ -104,10 +91,13 @@ export function classifyMove(
     //   1. Position is competitive — not already a forced win (|cp| < 500)
     //   2. Best move is a sacrifice (moving valuable piece to undefended/lower-value square)
     //   3. Second best move is dramatically worse (gap ≥ 300cp) — think +1 vs +7
-    const positionCompetitive = Math.abs(cpBefore) < 500
-    const sacrifice = fenBefore ? isSacrifice(fenBefore, playedMoveUci) : false
+    const movingPlayerColor = color === 'w' ? 'white' : 'black'
+    const isUserMove = movingPlayerColor === userColor
 
-    if (positionCompetitive && sacrifice && secondBestGap >= 300) {
+    const positionCompetitive = Math.abs(cpBefore) < 500
+    const sacrifice = (isUserMove && fenBefore) ? isSacrifice(fenBefore, playedMoveUci) : false
+
+    if (isUserMove && positionCompetitive && sacrifice && secondBestGap >= 300) {
       return 'brilliant'
     }
 

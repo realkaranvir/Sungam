@@ -142,6 +142,7 @@ export function ReviewPage() {
           move.color,
           infoBeforeMove,
           move.uci,
+          game.userColor,
           move.fenBefore,
         )
 
