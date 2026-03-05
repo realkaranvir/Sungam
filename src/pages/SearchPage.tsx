@@ -2,9 +2,22 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search } from 'lucide-react'
+import { Search, Dices } from 'lucide-react'
 
 const LS_KEY = 'sungam_username'
+
+const TOP_GMS = [
+  'Hikaru',
+  'MagnusCarlsen',
+  'GothamChess',
+  'Firouzja2003',
+  'lachesisq',
+  'FabianoCaruana',
+  'AnishGiri',
+  'WesleySo',
+  'LevonAronian',
+  'ViditChess'
+]
 
 export function SearchPage() {
   const navigate = useNavigate()
@@ -23,6 +36,11 @@ export function SearchPage() {
     if (!trimmed) return
     localStorage.setItem(LS_KEY, trimmed)
     navigate(`/dashboard/${trimmed}`)
+  }
+
+  const handleRandomGM = () => {
+    const randomIndex = Math.floor(Math.random() * TOP_GMS.length)
+    setUsername(TOP_GMS[randomIndex])
   }
 
   return (
@@ -45,11 +63,19 @@ export function SearchPage() {
               placeholder="Chess.com username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-600"
+              className="pl-10 pr-10 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-600"
               autoFocus
               autoComplete="off"
               spellCheck={false}
             />
+            <button
+              type="button"
+              onClick={handleRandomGM}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              title="Pick a random top GM"
+            >
+              <Dices className="h-4 w-4" />
+            </button>
           </div>
           <Button
             type="submit"
