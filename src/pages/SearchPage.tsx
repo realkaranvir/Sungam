@@ -56,30 +56,33 @@ export function SearchPage() {
 
         {/* Search form */}
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-            <Input
-              type="text"
-              placeholder="Chess.com username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="pl-10 pr-10 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-600"
-              autoFocus
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <Input
+                type="text"
+                placeholder="Chess.com username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-10 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-zinc-600 h-12"
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <Button
               type="button"
               onClick={handleRandomGM}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              variant="outline"
+              className="h-12 w-12 p-0 border-zinc-800 bg-zinc-900 text-zinc-500 hover:text-white hover:bg-zinc-800 shrink-0"
               title="Pick a random top GM"
             >
-              <Dices className="h-4 w-4" />
-            </button>
+              <Dices className="h-5 w-5" />
+            </Button>
           </div>
           <Button
             type="submit"
-            className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-semibold"
+            className="w-full h-12 bg-white text-zinc-950 hover:bg-zinc-200 font-semibold"
             disabled={!username.trim()}
           >
             Analyze Games
