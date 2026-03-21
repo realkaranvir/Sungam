@@ -34,6 +34,8 @@ async function parsePuzzles(): Promise<Puzzle[]> {
 
   console.log(`Found ${puzzleBlocks.length} puzzle blocks...`)
 
+  let skippedMalformed = 0
+
   for (const block of puzzleBlocks) {
     // Prepend [Event " for proper parsing
     const fullBlock = `[Event "${block}`
@@ -84,28 +86,49 @@ async function parsePuzzles(): Promise<Puzzle[]> {
     const body = fullBlock.split('\n').slice(headerLines.length).join('\n')
 
     if (fen) {
-      // Find the FEN line and extract moves from it
-      const lines = body.split('\n')
-      for (const line of lines) {
-        if (line.trim().startsWith('1.')) {
-          // This is the moves line, extract SAN moves
-          const sanParts = line.trim().split(' ').filter(m => m && !m.includes('{') && m !== result)
-          for (const sanMove of sanParts) {
-            // Remove move number prefix (e.g., "1." → "")
-            const sanMoveClean = sanMove.replace(/^\d+\./, '')
+      // Check if body contains error messages (malformed puzzles)
+      const hasError = body.includes('{Error reading move')
 
-            if (sanMoveClean) {
-              // Convert SAN to UCI
-              const uci = sanMoveClean.length > 2 ? sanMoveClean.slice(0, 2) + sanMoveClean.slice(2, 4) : sanMoveClean.slice(0, 2)
-              moves.push(uci.toUpperCase())
-            }
-
-            // Last move is the solution
-            solution = sanMoveClean || sanMove
+      if (!hasError) {
+        // Find the moves line (any line with SAN moves, not starting with "[")
+        const lines = body.split('\n')
+        for (const line of lines) {
+          const trimmed = line.trim()
+          // Skip empty lines, headers, and error comments
+          if (trimmed.length === 0 || trimmed.startsWith('[') || trimmed.includes('{')) {
+            continue
           }
-          break
+
+          // Check if this line contains moves (at least 2 space-separated parts, not error messages)
+          const sanParts = trimmed.split(' ').filter(m => m && !m.includes('{') && m !== result)
+          if (sanParts.length >= 2) {
+            // This is the moves line, extract SAN moves
+            for (const sanMove of sanParts) {
+              // Skip error messages
+              if (sanMove.includes('Error reading move')) {
+                continue
+              }
+
+              // Remove move number prefix (e.g., "1." → "", "16..." → "")
+              const sanMoveClean = sanMove.replace(/^\d+\.\.\.?/, '')
+
+              if (sanMoveClean) {
+                // Convert SAN to UCI
+                const uci = sanMoveClean.length > 2 ? sanMoveClean.slice(0, 2) + sanMoveClean.slice(2, 4) : sanMoveClean.slice(0, 2)
+                moves.push(uci.toUpperCase())
+              }
+
+              // Last move is the solution
+              solution = sanMoveClean || sanMove
+            }
+            break
+          }
         }
+      } else {
+        skippedMalformed++
       }
+    } else {
+      skippedMalformed++
     }
 
     const puzzle: Puzzle = {
@@ -121,6 +144,10 @@ async function parsePuzzles(): Promise<Puzzle[]> {
 
     puzzles.push(puzzle)
   }
+
+  console.log(`Parsed ${puzzles.length} valid puzzles (skipped ${skippedMalformed} malformed)`)
+
+  return puzzles
 
   return puzzles
 }

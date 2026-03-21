@@ -47,22 +47,20 @@ export function PuzzlePage() {
         <p className="text-zinc-500 mb-6">Solve chess puzzles to improve your game</p>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-zinc-500">Rating:</span>{' '}
-              <span className="text-white">{puzzle.rating}</span>
-            </div>
-            <div>
-              <span className="text-zinc-500">Category:</span>{' '}
-              <span className="text-white">{puzzle.category}</span>
-            </div>
-            <div>
-              <span className="text-zinc-500">Theme:</span>{' '}
-              <span className="text-white">{puzzle.theme}</span>
-            </div>
-            <div>
-              <span className="text-zinc-500">Title:</span>{' '}
-              <span className="text-white">{puzzle.title}</span>
+          <div className="text-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-zinc-500">Category:</span>{' '}
+                <span className="text-white">{puzzle.category}</span>
+              </div>
+              <div>
+                <span className="text-zinc-500">Theme:</span>{' '}
+                <span className="text-white">{puzzle.theme}</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-zinc-500">Title:</span>{' '}
+                <span className="text-white">{puzzle.title}</span>
+              </div>
             </div>
           </div>
         </div>
