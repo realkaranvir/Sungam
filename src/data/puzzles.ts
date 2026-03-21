@@ -1,5 +1,3 @@
-import { Chess } from 'chess.js'
-
 const PGN_PATH = '/puzzles.pgn'
 
 interface Puzzle {
@@ -31,16 +29,19 @@ async function parsePuzzles(): Promise<Puzzle[]> {
   const puzzles: Puzzle[] = []
   let currentId = 0
 
-  // Split by empty lines (puzzle boundaries)
-  const puzzleBlocks = pgn.trim().split(/\n\s*\n/)
+  // Split by [Event ""] header (puzzle boundaries)
+  const puzzleBlocks = pgn.trim().split(/\[Event "/g)
 
   console.log(`Found ${puzzleBlocks.length} puzzle blocks...`)
 
   for (const block of puzzleBlocks) {
+    // Prepend [Event " for proper parsing
+    const fullBlock = `[Event "${block}`
+
     currentId++
 
     // Extract headers - find all lines starting with '['
-    const headerLines = block.split('\n').filter(line => line.trim().startsWith('['))
+    const headerLines = fullBlock.split('\n').filter(line => line.trim().startsWith('['))
 
     let fen = ''
     let moves: string[] = []
@@ -80,29 +81,29 @@ async function parsePuzzles(): Promise<Puzzle[]> {
     }
 
     // Extract moves from the body (after headers)
-    const body = block.split('\n').slice(headerLines.length).join('\n')
-    const moveMatches = body.match(/[1-9][0-9]*\.\s*[^.]+/g)
+    const body = fullBlock.split('\n').slice(headerLines.length).join('\n')
 
-    if (moveMatches && fen) {
-      // Parse SAN moves to UCI
-      for (const moveMatch of moveMatches) {
-        const moveLine = moveMatch.trim()
-        const match = moveLine.match(/[1-9][0-9]*\./)
-        const moveNumber = match ? parseInt(match[0], 10) : 0
+    if (fen) {
+      // Find the FEN line and extract moves from it
+      const lines = body.split('\n')
+      for (const line of lines) {
+        if (line.trim().startsWith('1.')) {
+          // This is the moves line, extract SAN moves
+          const sanParts = line.trim().split(' ').filter(m => m && !m.includes('{') && m !== result)
+          for (const sanMove of sanParts) {
+            // Remove move number prefix (e.g., "1." → "")
+            const sanMoveClean = sanMove.replace(/^\d+\./, '')
 
-        // Get SAN moves (everything after move number and dot)
-        const san = moveLine.replace(/[1-9][0-9]*\.\s*/, '')
-        const sanParts = san.split(' ').filter(m => m && !m.includes('{'))
-
-        for (const sanMove of sanParts) {
-          if (sanMove && sanMove !== result) {
-            // Convert SAN to UCI
-            const uci = sanMove.length > 2 ? sanMove.slice(0, 2) + sanMove.slice(2, 4) : sanMove.slice(0, 2)
-            moves.push(uci.toUpperCase())
+            if (sanMoveClean) {
+              // Convert SAN to UCI
+              const uci = sanMoveClean.length > 2 ? sanMoveClean.slice(0, 2) + sanMoveClean.slice(2, 4) : sanMoveClean.slice(0, 2)
+              moves.push(uci.toUpperCase())
+            }
 
             // Last move is the solution
-            solution = sanMove
+            solution = sanMoveClean || sanMove
           }
+          break
         }
       }
     }
