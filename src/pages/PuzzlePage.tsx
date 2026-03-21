@@ -1,11 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { getRandomPuzzle } from '@/data/puzzles'
+import { AppHeader } from '@/components/AppHeader'
 
 export function PuzzlePage() {
   const [puzzle, setPuzzle] = useState<any>(null)
   const [currentFen, setCurrentFen] = useState('')
   const [loading, setLoading] = useState(true)
+  const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
+
+  const boardMeasureRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const el = boardMeasureRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width
+      setBoardSize(Math.floor(w / 8) * 8)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     async function loadPuzzle() {
@@ -25,7 +40,7 @@ export function PuzzlePage() {
     }
 
     loadPuzzle()
-  }, [])
+  }, [getRandomPuzzle])
 
   if (loading) {
     return (
@@ -44,49 +59,57 @@ export function PuzzlePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2">Sungam Puzzles</h1>
-        <p className="text-zinc-500 mb-6">Solve chess puzzles to improve your game</p>
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+      <AppHeader
+        title="Sungam Puzzles"
+        subtitle="Solve chess puzzles to improve your game"
+      />
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
-          <div className="text-sm">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-zinc-500">Category:</span>{' '}
-                <span className="text-white">{puzzle.category}</span>
+      <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">
+        {/* Left Column: Puzzle info */}
+        <div className="w-full lg:max-w-xs lg:shrink-0 flex flex-col gap-4">
+          <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 space-y-3">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Category</span>
               </div>
-              <div>
-                <span className="text-zinc-500">Theme:</span>{' '}
-                <span className="text-white">{puzzle.theme}</span>
+              <span className="text-white text-sm">{puzzle.category}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Theme</span>
               </div>
-              <div className="col-span-2">
-                <span className="text-zinc-500">Title:</span>{' '}
-                <span className="text-white">{puzzle.title}</span>
+              <span className="text-white text-sm">{puzzle.theme}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Title</span>
+              </div>
+              <span className="text-white text-sm">{puzzle.title}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Chessboard */}
+        <div className="flex-1 flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
+          <div className="p-3 border-b border-zinc-800 shrink-0">
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Starting position</h3>
+          </div>
+          <div className="flex-1 min-h-0 p-4 flex items-center justify-center">
+            <div ref={boardMeasureRef} className="min-h-0 min-w-0">
+              <div style={{ width: boardSize, height: boardSize }}>
+                <Chessboard
+                  options={{
+                    position: currentFen,
+                    boardOrientation: 'white',
+                    allowDragging: false,
+                  }}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
-          <div className="text-zinc-500 text-sm mb-4">Starting position</div>
-          <div style={{ width: '480px', height: '480px' }}>
-            <Chessboard
-              options={{
-                position: currentFen,
-                boardOrientation: 'white',
-                allowDragging: false,
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 text-zinc-600 text-sm">
-          <p>Console output:</p>
-          <p className="text-zinc-500">✓ Puzzle FEN logged</p>
-          <p className="text-zinc-500">✓ Puzzle moves logged</p>
-          <p className="text-zinc-500">✓ Puzzle solution logged</p>
-        </div>
       </div>
     </div>
   )
