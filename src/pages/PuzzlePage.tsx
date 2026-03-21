@@ -96,13 +96,23 @@ export function PuzzlePage() {
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Starting position</h3>
           </div>
           <div className="flex-1 min-h-0 p-4 flex items-center justify-center">
-            <div ref={boardMeasureRef} className="min-h-0 min-w-0">
+            <div
+              ref={boardMeasureRef}
+              className="min-h-0 min-w-0"
+              style={{ width: 'min(100%, calc(100vh - 12rem))', maxWidth: '100%', maxHeight: '100%' }}
+            >
               <div style={{ width: boardSize, height: boardSize }}>
                 <Chessboard
                   options={{
                     position: currentFen,
                     boardOrientation: 'white',
                     allowDragging: false,
+                    boardStyle: {
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                    },
+                    darkSquareStyle: { backgroundColor: '#3d3d3d' },
+                    lightSquareStyle: { backgroundColor: '#a0a0a0' },
                   }}
                 />
               </div>
