@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Chessboard } from 'react-chessboard'
 import { getRandomPuzzle } from '@/data/puzzles'
 
 export function PuzzlePage() {
   const [puzzle, setPuzzle] = useState<any>(null)
+  const [currentFen, setCurrentFen] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -10,6 +12,7 @@ export function PuzzlePage() {
       try {
         const randomPuzzle = await getRandomPuzzle()
         setPuzzle(randomPuzzle)
+        setCurrentFen(randomPuzzle.fen)
         console.log('Puzzle FEN:', randomPuzzle.fen)
         console.log('Puzzle moves:', randomPuzzle.moves)
         console.log('Puzzle solution:', randomPuzzle.solution)
@@ -65,10 +68,16 @@ export function PuzzlePage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-zinc-500 text-sm mb-2">Current position:</div>
-          <div className="bg-zinc-950 p-3 rounded font-mono text-sm text-green-400 break-all">
-            {puzzle.fen}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <div className="text-zinc-500 text-sm mb-4">Starting position</div>
+          <div style={{ width: '480px', height: '480px' }}>
+            <Chessboard
+              options={{
+                position: currentFen,
+                boardOrientation: 'white',
+                allowDragging: false,
+              }}
+            />
           </div>
         </div>
 
