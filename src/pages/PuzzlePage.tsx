@@ -17,7 +17,9 @@ export function PuzzlePage() {
 
   const boardMeasureRef = useRef<HTMLDivElement | null>(null)
   const chessRef = useRef<Chess | null>(null)
-  const autoPlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoPlayTimeoutRef = useRef<number | null>(null)
+  const autoPlaySetupTimeoutRef = useRef<number | null>(null)
+  const isAutoPlayingRef = useRef(false)
 
   useEffect(() => {
     const el = boardMeasureRef.current
@@ -45,7 +47,33 @@ export function PuzzlePage() {
     }
   }
 
+  const autoPlayNextMove = async (chess: Chess, moveIndex: number) => {
+    // Check if puzzle is solved or no more moves
+    if (solved || isAutoPlayingRef.current || moveIndex >= solution.length) {
+      return
+    }
+
+    isAutoPlayingRef.current = true
+
+    // Small delay to let user see their move
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Get next solution move and auto-play it using chess instance
+    const nextMove = solution[moveIndex]
+
+    const uciMove = convertSanToUci(nextMove, chess.fen())
+
+    if (uciMove) {
+      chess.move(uciMove)
+      setCurrentFen(chess.fen())
+      setCurrentMoveIndex(moveIndex + 1)
+      isAutoPlayingRef.current = false
+    }
+  }
+
   useEffect(() => {
+    let autoPlaySetupTimeoutId: number | null = null
+
     async function loadPuzzle() {
       try {
         const randomPuzzle = await getRandomPuzzle()
@@ -76,7 +104,7 @@ export function PuzzlePage() {
 
         // Auto-play the setup move after 1.5 seconds
         if (solution.length > 0 && fullSolution.length > 0) {
-          autoPlayTimeoutRef.current = setTimeout(() => {
+          autoPlaySetupTimeoutId = setTimeout(() => {
             const setupMove = fullSolution[0]
             console.log('Auto-playing setup move:', setupMove)
 
@@ -85,6 +113,7 @@ export function PuzzlePage() {
             if (uciMove) {
               chess.move(uciMove)
               setCurrentFen(chess.fen())
+              isAutoPlayingRef.current = false
               console.log('Setup move played. New FEN:', chess.fen())
             }
           }, 1500)
@@ -103,11 +132,19 @@ export function PuzzlePage() {
 
     loadPuzzle()
 
-    // Cleanup timeout on unmount
+    // Cleanup on unmount
     return () => {
+      if (autoPlaySetupTimeoutId) {
+        clearTimeout(autoPlaySetupTimeoutId)
+      }
       if (autoPlayTimeoutRef.current) {
         clearTimeout(autoPlayTimeoutRef.current)
       }
+      if (autoPlaySetupTimeoutRef.current) {
+        clearTimeout(autoPlaySetupTimeoutRef.current)
+      }
+      chessRef.current = null
+      isAutoPlayingRef.current = false
     }
   }, [getRandomPuzzle])
 
@@ -128,8 +165,7 @@ export function PuzzlePage() {
   }
 
   const onPieceDrop = ({ piece, sourceSquare, targetSquare }: any) => {
-    if (sourceSquare === targetSquare) return false
-    if (solved) return false
+    if (solved || isAutoPlayingRef.current) return false
 
     const chess = chessRef.current
     if (!chess) return false
@@ -172,14 +208,31 @@ export function PuzzlePage() {
       if (expectedMove) {
         const solutionUci = convertSanToUci(expectedMove, currentFen)
         if (solutionUci && uciMove === solutionUci) {
-          if (currentMoveIndex === solution.length - 1) {
-            setFeedback('✓ Correct!')
-            setSolved(true)
-            console.log('Puzzle solved! Correct move:', uciMove)
+          // Calculate next index before setting state
+          const nextMoveIndex = currentMoveIndex + 1
+          setCurrentMoveIndex(nextMoveIndex)
+          setFeedback('✓ Good!')
+          console.log('Correct move! Continuing to next move.')
+
+          // Use the new index for the check (not the old one)
+          console.log('Checking auto-play conditions:', {
+            chessRefExists: !!chessRef.current,
+            currentTurn: chessRef.current?.turn(),
+            boardOrientation,
+            nextMoveIndex,
+            solutionLength: solution.length,
+            shouldAutoPlay: chessRef.current && chessRef.current.turn() !== (boardOrientation === 'white' ? 'w' : 'b') && nextMoveIndex < solution.length - 1
+          })
+          if (chessRef.current && chessRef.current.turn() !== (boardOrientation === 'white' ? 'w' : 'b') && nextMoveIndex < solution.length - 1) {
+            console.log('Triggering auto-play')
+            autoPlayNextMove(chessRef.current, nextMoveIndex)
           } else {
-            setCurrentMoveIndex(currentMoveIndex + 1)
-            setFeedback('✓ Good!')
-            console.log('Correct move! Continuing to next move.')
+            console.log('Skipping auto-play:', {
+              currentTurn: chessRef.current?.turn(),
+              boardOrientation,
+              nextMoveIndex,
+              solutionLength: solution.length
+            })
           }
         } else {
           setFeedback('✗ Wrong move!')
@@ -199,29 +252,45 @@ export function PuzzlePage() {
   }
 
   const handleNextPuzzle = () => {
+    // Clear any pending timeouts
+    if (autoPlayTimeoutRef.current) {
+      clearTimeout(autoPlayTimeoutRef.current)
+    }
+    if (autoPlaySetupTimeoutRef.current) {
+      clearTimeout(autoPlaySetupTimeoutRef.current)
+    }
+
     setSolved(false)
     setUserMoves([])
-    setCurrentMoveIndex(0)
+    // Store new index in local variable before setting state
+    const nextMoveIndex = 0
+    setCurrentMoveIndex(nextMoveIndex)
     setFeedback('')
     setCurrentFen(puzzle.fen)
     const chess = new Chess(puzzle.fen)
     chessRef.current = chess
+    isAutoPlayingRef.current = false
     console.log('Next puzzle loaded. New FEN:', puzzle.fen)
 
-    if (autoPlayTimeoutRef.current) {
-      clearTimeout(autoPlayTimeoutRef.current)
-    }
-    autoPlayTimeoutRef.current = setTimeout(() => {
-      const setupMove = fullSolution[0]
-      console.log('Auto-playing setup move:', setupMove)
+    // Extract full solution from puzzle.moves and remove move numbers
+    const fullSolution = puzzle.moves.filter((m: string) => !m.match(/^\d+\.$/)).map((m: string) => m.trim())
+    const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
 
-      const uciMove = convertSanToUci(setupMove, puzzle.fen)
-      if (uciMove) {
-        chess.move(uciMove)
-        setCurrentFen(chess.fen())
-        console.log('Setup move played. New FEN:', chess.fen())
-      }
-    }, 1500)
+    // Auto-play the setup move after 1.5 seconds
+    if (solution.length > 0 && fullSolution.length > 0) {
+      autoPlaySetupTimeoutRef.current = setTimeout(() => {
+        const setupMove = fullSolution[0]
+        console.log('Auto-playing setup move:', setupMove)
+
+        const uciMove = convertSanToUci(setupMove, puzzle.fen)
+        if (uciMove) {
+          chess.move(uciMove)
+          setCurrentFen(chess.fen())
+          isAutoPlayingRef.current = false
+          console.log('Setup move played. New FEN:', chess.fen())
+        }
+      }, 1500)
+    }
   }
 
   // Extract solution (excluding setup move)
