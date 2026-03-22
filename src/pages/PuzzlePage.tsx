@@ -68,7 +68,7 @@ export function PuzzlePage() {
         console.log('Board orientation set to:', boardOrientation)
 
         // Extract full solution from puzzle.moves and remove move numbers
-        const fullSolution = randomPuzzle.moves.filter((m: string) => !m.match(/^\d+\.\.\.?/)).map((m: string) => m.trim())
+        const fullSolution = randomPuzzle.moves.filter((m: string) => !m.match(/^\d+\.$/)).map((m: string) => m.trim())
         const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
 
         console.log('Full solution:', fullSolution)
@@ -128,6 +128,7 @@ export function PuzzlePage() {
   }
 
   const onPieceDrop = ({ piece, sourceSquare, targetSquare }: any) => {
+    if (sourceSquare === targetSquare) return false
     if (solved) return false
 
     const chess = chessRef.current
@@ -224,7 +225,7 @@ export function PuzzlePage() {
   }
 
   // Extract solution (excluding setup move)
-  const fullSolution = puzzle.moves.filter((m: string) => !m.match(/^\d+\.\.\.?/)).map((m: string) => m.trim())
+  const fullSolution = puzzle.moves.filter((m: string) => !m.match(/^\d+\.$/)).map((m: string) => m.trim())
   const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
 
   return (
