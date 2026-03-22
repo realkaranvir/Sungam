@@ -96,8 +96,13 @@ export function PuzzlePage() {
         console.log('Board orientation set to:', boardOrientation)
 
         // Extract full solution from puzzle.moves and remove move numbers
-        const fullSolution = randomPuzzle.moves.filter((m: string) => !m.match(/^\d+\.$/)).map((m: string) => m.trim())
-        const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
+        // 1. Clean and extract every move string first
+        const fullSolution = randomPuzzle.moves
+          .map((m: string) => m.replace(/^\d+\.{1,3}/, '').trim()) // Removes "1." or "1..." from the start
+          .filter((m: string) => m.length > 0); // Removes any elements that were ONLY numbers
+
+        // 2. Create the subset (skipping the first move)
+        const solution = fullSolution.slice(1);
 
         console.log('Full solution:', fullSolution)
         console.log('Solution (excluding setup move and move numbers):', solution)
@@ -233,6 +238,9 @@ export function PuzzlePage() {
               nextMoveIndex,
               solutionLength: solution.length
             })
+            if (nextMoveIndex === solution.length - 1) {
+              setSolved(true);
+            }
           }
         } else {
           setFeedback('✗ Wrong move!')
@@ -329,7 +337,7 @@ export function PuzzlePage() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Moves</span>
               </div>
-              <span className="text-white text-sm">{userMoves.length} / {solution.length}</span>
+              <span className="text-white text-sm">{userMoves.length} / {Math.ceil(solution.length / 2)}</span>
             </div>
             {feedback && (
               <div className="p-3 rounded-lg bg-zinc-800 border border-zinc-700">
