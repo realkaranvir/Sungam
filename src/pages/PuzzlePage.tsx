@@ -17,6 +17,7 @@ export function PuzzlePage() {
 
   const boardMeasureRef = useRef<HTMLDivElement | null>(null)
   const chessRef = useRef<Chess | null>(null)
+  const autoPlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const el = boardMeasureRef.current
@@ -29,6 +30,21 @@ export function PuzzlePage() {
     return () => ro.disconnect()
   }, [])
 
+  const convertSanToUci = (san: string, fen: string): string | null => {
+    try {
+      const chess = new Chess(fen)
+      const moves = chess.moves({ verbose: true })
+      const move = moves.find(m => m.san === san)
+      if (move) {
+        return move.lan
+      }
+      return null
+    } catch (err) {
+      console.error('Failed to convert SAN to UCI:', err)
+      return null
+    }
+  }
+
   useEffect(() => {
     async function loadPuzzle() {
       try {
@@ -38,7 +54,8 @@ export function PuzzlePage() {
 
         // Parse FEN to determine whose turn it is (last char before ' - 0 1')
         const sideToMove = randomPuzzle.fen.split(' ').at(-5) || 'w'
-        setBoardOrientation(sideToMove as 'white' | 'black')
+        const boardOrientation = sideToMove === 'w' ? 'black' : 'white'
+        setBoardOrientation(boardOrientation)
 
         // Initialize Chess instance
         const chess = new Chess(randomPuzzle.fen)
@@ -47,7 +64,35 @@ export function PuzzlePage() {
         console.log('Puzzle FEN:', randomPuzzle.fen)
         console.log('Puzzle moves:', randomPuzzle.moves)
         console.log('Puzzle solution (SAN):', randomPuzzle.solution)
-        console.log('Side to move:', sideToMove)
+        console.log('Side to move (FEN):', sideToMove)
+        console.log('Board orientation set to:', boardOrientation)
+
+        // Extract full solution from puzzle.moves and remove move numbers
+        const fullSolution = randomPuzzle.moves.filter((m: string) => !m.match(/^\d+\.\.\.?/)).map((m: string) => m.trim())
+        const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
+
+        console.log('Full solution:', fullSolution)
+        console.log('Solution (excluding setup move and move numbers):', solution)
+
+        // Auto-play the setup move after 1.5 seconds
+        if (solution.length > 0 && fullSolution.length > 0) {
+          autoPlayTimeoutRef.current = setTimeout(() => {
+            const setupMove = fullSolution[0]
+            console.log('Auto-playing setup move:', setupMove)
+
+            // Convert SAN to UCI and make the move
+            const uciMove = convertSanToUci(setupMove, randomPuzzle.fen)
+            if (uciMove) {
+              chess.move(uciMove)
+              setCurrentFen(chess.fen())
+              console.log('Setup move played. New FEN:', chess.fen())
+            }
+          }, 1500)
+        }
+
+        // Start from the first move (index 0)
+        setCurrentMoveIndex(0)
+
       } catch (err) {
         console.error('Failed to load puzzle:', err)
         alert('Failed to load puzzle')
@@ -57,6 +102,13 @@ export function PuzzlePage() {
     }
 
     loadPuzzle()
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (autoPlayTimeoutRef.current) {
+        clearTimeout(autoPlayTimeoutRef.current)
+      }
+    }
   }, [getRandomPuzzle])
 
   if (loading) {
@@ -75,37 +127,9 @@ export function PuzzlePage() {
     )
   }
 
-  const convertSanToUci = (san: string, fen: string): string | null => {
-    try {
-      const chess = new Chess(fen)
-      const moves = chess.moves({ verbose: true })
-      const move = moves.find(m => m.san === san)
-      if (move) {
-        // Use LAN (long algebraic notation) and convert to UCI
-        // LAN is like 'c2c3', UCI is also 'c2c3'
-        return move.lan
-      }
-      return null
-    } catch (err) {
-      console.error('Failed to convert SAN to UCI:', err)
-      return null
-    }
-  }
-
-  const extractFullSolution = (moves: string[]): string[] => {
-    // Remove move number prefixes (e.g., '8.', '9.') and get just the moves
-    return moves.filter(m => !m.match(/^\d+\.$/)).map(m => m.trim())
-  }
-
-  const fullSolution = extractFullSolution(puzzle.moves)
-
-  console.log('Full solution (UCI):', fullSolution)
-
   const onPieceDrop = ({ piece, sourceSquare, targetSquare }: any) => {
-    // Check if already solved
     if (solved) return false
 
-    // Check if it's the correct player's turn
     const chess = chessRef.current
     if (!chess) return false
 
@@ -115,13 +139,10 @@ export function PuzzlePage() {
     console.log('Current turn:', currentTurn)
     console.log('Piece color from piece object:', piece?.pieceType)
 
-    // Get piece color from chess.js board state
     const squarePiece = chess.get(sourceSquare)
     console.log('Square piece from chess.js:', squarePiece)
 
-    // Extract color from pieceType (first character: 'w' or 'b')
     const pieceColor = piece?.pieceType?.charAt(0)
-
     console.log('Piece color (extracted):', pieceColor)
 
     if (pieceColor !== currentTurn) {
@@ -129,12 +150,10 @@ export function PuzzlePage() {
       return false
     }
 
-    // Convert move to UCI
     const uciMove = `${sourceSquare}${targetSquare}`
     console.log('Move:', uciMove)
 
-    // Get expected move from solution
-    const expectedMove = fullSolution[currentMoveIndex]
+    const expectedMove = solution[currentMoveIndex]
     console.log('Current move index:', currentMoveIndex, 'Expected move:', expectedMove)
 
     if (expectedMove) {
@@ -144,34 +163,27 @@ export function PuzzlePage() {
       }
     }
 
-    // Make the move in chess.js
     try {
       chess.move({ from: sourceSquare, to: targetSquare })
       setCurrentFen(chess.fen())
       setUserMoves([...userMoves, uciMove])
 
-      // Check if move matches expected solution
       if (expectedMove) {
         const solutionUci = convertSanToUci(expectedMove, currentFen)
         if (solutionUci && uciMove === solutionUci) {
-          // Correct move
-          if (currentMoveIndex === fullSolution.length - 1) {
-            // Last move - puzzle solved!
+          if (currentMoveIndex === solution.length - 1) {
             setFeedback('✓ Correct!')
             setSolved(true)
             console.log('Puzzle solved! Correct move:', uciMove)
           } else {
-            // Not last move, continue to next
             setCurrentMoveIndex(currentMoveIndex + 1)
             setFeedback('✓ Good!')
             console.log('Correct move! Continuing to next move.')
           }
         } else {
-          // Wrong move - show error and reset
           setFeedback('✗ Wrong move!')
           console.log('Wrong move! Move:', uciMove, 'Expected:', solutionUci)
 
-          // Undo the move
           chess.undo()
           setCurrentFen(chess.fen())
         }
@@ -194,7 +206,26 @@ export function PuzzlePage() {
     const chess = new Chess(puzzle.fen)
     chessRef.current = chess
     console.log('Next puzzle loaded. New FEN:', puzzle.fen)
+
+    if (autoPlayTimeoutRef.current) {
+      clearTimeout(autoPlayTimeoutRef.current)
+    }
+    autoPlayTimeoutRef.current = setTimeout(() => {
+      const setupMove = fullSolution[0]
+      console.log('Auto-playing setup move:', setupMove)
+
+      const uciMove = convertSanToUci(setupMove, puzzle.fen)
+      if (uciMove) {
+        chess.move(uciMove)
+        setCurrentFen(chess.fen())
+        console.log('Setup move played. New FEN:', chess.fen())
+      }
+    }, 1500)
   }
+
+  // Extract solution (excluding setup move)
+  const fullSolution = puzzle.moves.filter((m: string) => !m.match(/^\d+\.\.\.?/)).map((m: string) => m.trim())
+  const solution = fullSolution.slice(1).filter((m: string) => !m.match(/^\d+\./))
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -204,7 +235,6 @@ export function PuzzlePage() {
       />
 
       <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">
-        {/* Left Column: Puzzle info */}
         <div className="w-full lg:max-w-xs lg:shrink-0 flex flex-col gap-4">
           <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 space-y-3">
             <div>
@@ -229,7 +259,7 @@ export function PuzzlePage() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Moves</span>
               </div>
-              <span className="text-white text-sm">{userMoves.length} / {fullSolution.length}</span>
+              <span className="text-white text-sm">{userMoves.length} / {solution.length}</span>
             </div>
             {feedback && (
               <div className="p-3 rounded-lg bg-zinc-800 border border-zinc-700">
@@ -250,7 +280,6 @@ export function PuzzlePage() {
           </div>
         </div>
 
-        {/* Right Column: Chessboard */}
         <div className="flex-1 flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
           <div className="p-3 border-b border-zinc-800 shrink-0">
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Starting position</h3>
@@ -280,7 +309,6 @@ export function PuzzlePage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )
