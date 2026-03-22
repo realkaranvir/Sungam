@@ -113,9 +113,9 @@ async function parsePuzzles(): Promise<Puzzle[]> {
               const sanMoveClean = sanMove.replace(/^\d+\.\.\.?/, '')
 
               if (sanMoveClean) {
-                // Convert SAN to UCI
-                const uci = sanMoveClean.length > 2 ? sanMoveClean.slice(0, 2) + sanMoveClean.slice(2, 4) : sanMoveClean.slice(0, 2)
-                moves.push(uci.toUpperCase())
+                // Save SAN moves directly (don't convert to UCI here)
+                // We'll convert to UCI on the fly when validating
+                moves.push(sanMoveClean)
               }
 
               // Last move is the solution
