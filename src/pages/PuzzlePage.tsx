@@ -335,8 +335,56 @@ export function PuzzlePage() {
       />
 
       <div className="flex-1 w-full px-4 py-4 overflow-hidden flex flex-col lg:flex-row lg:justify-center gap-4 items-stretch">
+        <div className="flex-1 flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
+          <div className="p-3 border-b border-zinc-800 shrink-0">
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Starting position</h3>
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                className="w-4 h-4 rounded-sm"
+                style={{
+                  backgroundColor: boardOrientation === 'white' ? '#ffffff' : '#000000',
+                  border: boardOrientation === 'white' ? '1px solid #333' : '1px solid #666'
+                }}
+              />
+              <p className="text-xs text-zinc-400">
+                {boardOrientation === 'white' ? 'You are playing white' : 'You are playing black'}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 p-4 flex items-center justify-center">
+            <div
+              ref={boardMeasureRef}
+              className="min-h-0 min-w-0"
+              style={{ width: 'min(100%, calc(100vh - 10rem))', maxWidth: '100%', maxHeight: '100%' }}
+            >
+              <div style={{ width: boardSize, height: boardSize }}>
+                <Chessboard
+                  options={{
+                    position: currentFen,
+                    boardOrientation,
+                    onPieceDrop,
+                    allowDragging: true,
+                    boardStyle: {
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                    },
+                    darkSquareStyle: { backgroundColor: '#3d3d3d' },
+                    lightSquareStyle: { backgroundColor: '#a0a0a0' },
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="w-full lg:max-w-xs lg:shrink-0 flex flex-col gap-4">
           <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 space-y-3">
+            <button
+              onClick={handleNextPuzzle}
+              className="w-full py-2 px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-white text-sm transition-colors"
+            >
+              Next Puzzle
+            </button>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Category</span>
@@ -371,42 +419,6 @@ export function PuzzlePage() {
                 <p className="text-green-400 text-sm font-medium">✓ Correct!</p>
               </div>
             )}
-            <button
-              onClick={handleNextPuzzle}
-              className="w-full py-2 px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-white text-sm transition-colors"
-            >
-              Next Puzzle
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden">
-          <div className="p-3 border-b border-zinc-800 shrink-0">
-            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Starting position</h3>
-          </div>
-          <div className="flex-1 min-h-0 p-4 flex items-center justify-center">
-            <div
-              ref={boardMeasureRef}
-              className="min-h-0 min-w-0"
-              style={{ width: 'min(100%, calc(100vh - 10rem))', maxWidth: '100%', maxHeight: '100%' }}
-            >
-              <div style={{ width: boardSize, height: boardSize }}>
-                <Chessboard
-                  options={{
-                    position: currentFen,
-                    boardOrientation,
-                    onPieceDrop,
-                    allowDragging: true,
-                    boardStyle: {
-                      borderRadius: '4px',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-                    },
-                    darkSquareStyle: { backgroundColor: '#3d3d3d' },
-                    lightSquareStyle: { backgroundColor: '#a0a0a0' },
-                  }}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
