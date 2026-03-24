@@ -3,6 +3,7 @@ import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { getRandomPuzzle } from '@/data/puzzles'
 import { AppHeader } from '@/components/AppHeader'
+import { toast } from 'sonner'
 
 export function PuzzlePage() {
   const [puzzle, setPuzzle] = useState<any>(null)
@@ -11,7 +12,6 @@ export function PuzzlePage() {
   const [userMoves, setUserMoves] = useState<string[]>([])
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0)
   const [solved, setSolved] = useState(false)
-  const [feedback, setFeedback] = useState<string>('')
   const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white')
 
@@ -216,7 +216,7 @@ export function PuzzlePage() {
           // Calculate next index before setting state
           const nextMoveIndex = currentMoveIndex + 1
           setCurrentMoveIndex(nextMoveIndex)
-          setFeedback('✓ Good!')
+          toast.success('✓ Good!')
           console.log('Correct move! Continuing to next move.')
 
           // Use the new index for the check (not the old one)
@@ -240,10 +240,13 @@ export function PuzzlePage() {
             })
             if (nextMoveIndex === solution.length - 1) {
               setSolved(true);
+              toast.success('✓ Correct!');
             }
           }
         } else {
-          setFeedback('✗ Wrong move!')
+          toast.error('✗ Wrong move!', {
+            duration: 2000,
+          })
           console.log('Wrong move! Move:', uciMove, 'Expected:', solutionUci)
 
           chess.undo()
@@ -271,7 +274,6 @@ export function PuzzlePage() {
     setSolved(false)
     setUserMoves([])
     setCurrentMoveIndex(0)
-    setFeedback('')
     setLoading(true)
 
     try {
@@ -409,16 +411,6 @@ export function PuzzlePage() {
               </div>
               <span className="text-white text-sm">{userMoves.length} / {Math.ceil(solution.length / 2)}</span>
             </div>
-            {feedback && (
-              <div className="p-3 rounded-lg bg-zinc-800 border border-zinc-700">
-                <p className="text-zinc-300 text-sm">{feedback}</p>
-              </div>
-            )}
-            {solved && (
-              <div className="p-3 rounded-lg bg-green-950/30 border border-green-500/30">
-                <p className="text-green-400 text-sm font-medium">✓ Correct!</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

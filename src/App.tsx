@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
 import { SearchPage } from '@/pages/SearchPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ReviewPage } from '@/pages/ReviewPage'
@@ -18,6 +19,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      <Toaster />
     </div>
   )
 }
