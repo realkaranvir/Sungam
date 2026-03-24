@@ -208,7 +208,6 @@ export function PuzzlePage() {
     try {
       chess.move({ from: sourceSquare, to: targetSquare })
       setCurrentFen(chess.fen())
-      setUserMoves([...userMoves, uciMove])
 
       if (expectedMove) {
         const solutionUci = convertSanToUci(expectedMove, currentFen)
@@ -216,7 +215,14 @@ export function PuzzlePage() {
           // Calculate next index before setting state
           const nextMoveIndex = currentMoveIndex + 1
           setCurrentMoveIndex(nextMoveIndex)
-          toast.success('✓ Good!')
+          setUserMoves([...userMoves, uciMove])
+
+          // Show appropriate toast based on whether this is the last move
+          if (nextMoveIndex === solution.length - 1) {
+            toast.success('✓ Correct!')
+          } else {
+            toast.success('✓ Good!')
+          }
           console.log('Correct move! Continuing to next move.')
 
           // Use the new index for the check (not the old one)
@@ -238,10 +244,7 @@ export function PuzzlePage() {
               nextMoveIndex,
               solutionLength: solution.length
             })
-            if (nextMoveIndex === solution.length - 1) {
-              setSolved(true);
-              toast.success('✓ Correct!');
-            }
+            setSolved(true);
           }
         } else {
           toast.error('✗ Wrong move!', {
