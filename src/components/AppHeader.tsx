@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, UserRound } from 'lucide-react'
+import { ArrowLeft, UserRound, Puzzle, FileSearch } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 
 const LS_KEY = 'sungam_username'
@@ -13,8 +13,6 @@ interface AppHeaderProps {
   right?: ReactNode
   progress?: number
   progressLabel?: string
-  /** If true, renders the full-width max-w-6xl container (ReviewPage). Defaults to max-w-2xl. */
-  wide?: boolean
 }
 
 export function AppHeader({ 
@@ -23,8 +21,7 @@ export function AppHeader({
   subtitle, 
   right, 
   progress,
-  progressLabel,
-  wide = false 
+  progressLabel
 }: AppHeaderProps) {
   const navigate = useNavigate()
 
@@ -35,11 +32,11 @@ export function AppHeader({
 
   return (
     <div className="border-b border-zinc-900 shrink-0 relative">
-      <div className={`${wide ? 'max-w-6xl' : 'max-w-2xl'} mx-auto px-4 py-3 flex items-center gap-3`}>
+      <div className="w-full px-6 py-3 flex items-center gap-6">
         {onBack && (
           <Button
             variant="ghost"
-            size="icon"
+            size="default"
             onClick={onBack}
             className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
           >
@@ -48,7 +45,7 @@ export function AppHeader({
         )}
 
         {(title || subtitle) && (
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 hidden sm:flex flex-col">
             {title && <div className="text-sm font-semibold truncate text-white">{title}</div>}
             {subtitle && <div className="text-xs text-zinc-500 truncate">{subtitle}</div>}
           </div>
@@ -58,12 +55,42 @@ export function AppHeader({
 
         <Button
           variant="ghost"
-          size="icon"
+          size="default"
+          onClick={() => navigate('/puzzles')}
+          title="Puzzles"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
+        >
+          <Puzzle className="h-4 w-4" />
+          <span className="ml-2 text-xs">Puzzles</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={() => {
+            const username = localStorage.getItem(LS_KEY)
+            if (username) {
+              navigate(`/dashboard/${username}`)
+            } else {
+              navigate('/')
+            }
+          }}
+          title="Review games"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
+        >
+          <FileSearch className="h-4 w-4" />
+          <span className="ml-2 text-xs">Review</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="default"
           onClick={handleChangeUser}
           title="Change user"
           className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
         >
           <UserRound className="h-4 w-4" />
+          <span className="ml-2 text-xs">Switch user</span>
         </Button>
       </div>
 

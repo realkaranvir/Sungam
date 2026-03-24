@@ -288,7 +288,6 @@ export function ReviewPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <AppHeader
-        wide
         onBack={() => navigate(-1)}
         title={`vs ${game.opponent} (${game.opponentRating})`}
         subtitle={`${game.userColor === 'white' ? '♔' : '♚'} You · ${game.result} · ${game.date}`}

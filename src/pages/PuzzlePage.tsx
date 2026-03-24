@@ -355,7 +355,7 @@ export function PuzzlePage() {
             <div
               ref={boardMeasureRef}
               className="min-h-0 min-w-0"
-              style={{ width: 'min(100%, calc(100vh - 10rem))', maxWidth: '100%', maxHeight: '100%' }}
+              style={{ width: 'min(100%, calc(100vh - 12rem))', maxWidth: '100%', maxHeight: '100%' }}
             >
               <div style={{ width: boardSize, height: boardSize }}>
                 <Chessboard
