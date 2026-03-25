@@ -4,6 +4,8 @@ import { Chess } from 'chess.js'
 import { getRandomPuzzle } from '@/data/puzzles'
 import { AppHeader } from '@/components/AppHeader'
 import { toast } from 'sonner'
+import { Toggle } from '@/components/ui/toggle'
+import { InfinityIcon } from 'lucide-react'
 
 export function PuzzlePage() {
   const [puzzle, setPuzzle] = useState<any>(null)
@@ -14,6 +16,10 @@ export function PuzzlePage() {
   const [solved, setSolved] = useState(false)
   const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white')
+  const [infiniteMode, setInfiniteMode] = useState(() => {
+    const saved = localStorage.getItem('sungam_infinite_puzzles')
+    return saved === 'true'
+  })
 
   const boardMeasureRef = useRef<HTMLDivElement | null>(null)
   const chessRef = useRef<Chess | null>(null)
@@ -172,6 +178,12 @@ export function PuzzlePage() {
       if (autoPlaySetupTimeoutRef.current) {
         clearTimeout(autoPlaySetupTimeoutRef.current)
       }
+      if (infiniteMode) {
+        // Clear any pending auto-advance
+        if (autoPlayTimeoutRef.current) {
+          clearTimeout(autoPlayTimeoutRef.current)
+        }
+      }
       chessRef.current = null
       isAutoPlayingRef.current = false
     }
@@ -244,6 +256,17 @@ export function PuzzlePage() {
           // Show appropriate toast based on whether this is the last move
           if (nextMoveIndex === solution.length - 1) {
             toast.success('✓ Correct!')
+
+            // Check if infinite mode is enabled
+            if (infiniteMode) {
+              // Debounce to prevent rapid successive solves
+              if (autoPlayTimeoutRef.current) {
+                clearTimeout(autoPlayTimeoutRef.current)
+              }
+              autoPlayTimeoutRef.current = window.setTimeout(() => {
+                handleNextPuzzle()
+              }, 1000) // 1 second delay
+            }
           } else {
             toast.success('✓ Good!')
           }
@@ -302,6 +325,8 @@ export function PuzzlePage() {
     setUserMoves([])
     setCurrentMoveIndex(0)
     setLoading(true)
+
+    localStorage.setItem('sungam_infinite_puzzles', String(infiniteMode))
 
     try {
       const randomPuzzle = await getRandomPuzzle()
@@ -414,6 +439,23 @@ export function PuzzlePage() {
             >
               Next Puzzle
             </button>
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-zinc-900 border border-zinc-800">
+              <Toggle
+                pressed={infiniteMode}
+                onPressedChange={(pressed: boolean) => {
+                  setInfiniteMode(pressed)
+                  localStorage.setItem('sungam_infinite_puzzles', String(pressed))
+                }}
+                aria-label="Toggle infinite mode"
+                className="data-[state=on]:bg-zinc-800 p-4"
+              >
+                <InfinityIcon className="h-4 w-4 mr-2" />
+                <span className="text-xs font-medium">Infinite Mode</span>
+              </Toggle>
+              <span className="text-xs text-zinc-500">
+                Auto-advance on completion
+              </span>
+            </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Category</span>
