@@ -32,6 +32,9 @@ export function PuzzlePage() {
     return () => ro.disconnect()
   }, [])
 
+  const maxSkipAttempts = 100  // Prevent infinite loop
+  let skipCount = 0
+
   const convertSanToUci = (san: string, fen: string): string | null => {
     try {
       const chess = new Chess(fen)
@@ -107,6 +110,24 @@ export function PuzzlePage() {
         console.log('Full solution:', fullSolution)
         console.log('Solution (excluding setup move and move numbers):', solution)
 
+        // Check if solution is valid
+        if (!solution || solution.length === 0) {
+          console.error('Invalid puzzle: no valid solution found, skipping...')
+          skipCount++
+
+          if (skipCount >= maxSkipAttempts) {
+            console.error('No valid puzzles found after max attempts')
+            alert('No valid puzzles available. Please try again later.')
+            setLoading(false)
+            setPuzzle(null)
+            return
+          }
+
+          // Auto-load next puzzle
+          handleNextPuzzle()
+          return
+        }
+
         // Auto-play the setup move after 1.5 seconds
         if (solution.length > 0 && fullSolution.length > 0) {
           autoPlaySetupTimeoutId = setTimeout(() => {
@@ -126,6 +147,9 @@ export function PuzzlePage() {
 
         // Start from the first move (index 0)
         setCurrentMoveIndex(0)
+
+        console.log('Puzzle loaded successfully')
+        skipCount = 0  // Reset counter only on successful load
 
       } catch (err) {
         console.error('Failed to load puzzle:', err)
