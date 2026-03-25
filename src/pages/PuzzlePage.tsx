@@ -447,10 +447,13 @@ export function PuzzlePage() {
                   localStorage.setItem('sungam_infinite_puzzles', String(pressed))
                 }}
                 aria-label="Toggle infinite mode"
-                className="data-[state=on]:bg-zinc-800 p-4"
+                data-state={infiniteMode ? 'on' : 'off'}
+                className="data-[state=on]:bg-green-700 data-[state=on]:text-white data-[state=off]:text-zinc-400 p-4"
               >
                 <InfinityIcon className="h-4 w-4 mr-2" />
-                <span className="text-xs font-medium">Infinite Mode</span>
+                <span className="text-xs font-medium">
+                  Infinite Mode ({infiniteMode ? 'On' : 'Off'})
+                </span>
               </Toggle>
               <span className="text-xs text-zinc-500">
                 Auto-advance on completion
