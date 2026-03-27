@@ -61,7 +61,7 @@ export function AppHeader({
           className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
         >
           <Puzzle className="h-4 w-4" />
-          <span className="ml-2 text-xs">Puzzles</span>
+          <span className="ml-2 text-xs hidden sm:inline">Puzzles</span>
         </Button>
 
         <Button
@@ -79,7 +79,7 @@ export function AppHeader({
           className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
         >
           <FileSearch className="h-4 w-4" />
-          <span className="ml-2 text-xs">Review</span>
+          <span className="ml-2 text-xs hidden sm:inline">Review</span>
         </Button>
 
         <Button
@@ -90,7 +90,7 @@ export function AppHeader({
           className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
         >
           <UserRound className="h-4 w-4" />
-          <span className="ml-2 text-xs">Switch user</span>
+          <span className="ml-2 text-xs hidden sm:inline">Switch user</span>
         </Button>
       </div>
 
