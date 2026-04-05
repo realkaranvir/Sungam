@@ -550,7 +550,7 @@ export function ReviewPage() {
                 <EvaluationGraph
                   evaluations={analyzedMoves
                     .map(m => m?.cpBefore ?? 0)
-                    .map(cp => Math.max(-5000, Math.min(5000, cp))) // Cap at ±50 pawns (5000 cp)
+                    .map(cp => Math.max(-1000, Math.min(1000, cp))) // Cap at ±10 pawns (1000 cp)
                   }
                   moveNumbers={analyzedMoves.map(m => m?.moveNumber ?? 0)}
                   currentMoveIndex={currentIndex}

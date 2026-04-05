@@ -36,7 +36,7 @@ export function EvaluationBar({
       </span>
 
       {/* Bar — grows to fill remaining height */}
-      <div className="relative flex-1 w-4 rounded overflow-hidden bg-zinc-900 border border-zinc-700 lg:h-full">
+      <div className="relative flex-1 w-4 rounded overflow-hidden bg-zinc-900 border border-zinc-700 lg:h-full lg:my-4 h-full">
         {/* Black portion (top) */}
         <div
           className="absolute top-0 left-0 right-0 bg-zinc-900 transition-all duration-500 ease-in-out"

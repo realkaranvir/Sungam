@@ -54,6 +54,9 @@ export function EvaluationGraph({
     ? paddingTop + graphEffectiveHeight - ((evaluations[currentMoveIndex] - minEval) * yScale)
     : paddingTop + graphEffectiveHeight - ((evaluations[evaluations.length - 1] - minEval) * yScale)
 
+  // Calculate Y position for 0 evaluation line
+  const zeroY = paddingTop + graphEffectiveHeight - ((0 - minEval) * yScale)
+
   return (
     <div className="flex flex-col gap-2 w-full">
       {/* Graph */}
@@ -74,9 +77,9 @@ export function EvaluationGraph({
           {/* Threshold line at 0 */}
           <line
             x1={0}
-            y1={paddingTop + graphEffectiveHeight / 2}
+            y1={zeroY}
             x2={graphWidth}
-            y2={paddingTop + graphEffectiveHeight / 2}
+            y2={zeroY}
             stroke="#3f3f46"
             strokeWidth={2}
             strokeDasharray="4 4"
