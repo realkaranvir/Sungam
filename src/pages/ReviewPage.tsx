@@ -11,6 +11,7 @@ import { getHikaruComment } from '@/lib/hikaruCoach'
 import { EvaluationBar } from '@/components/EvaluationBar'
 import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
+import { EvaluationGraph } from '@/components/EvaluationGraph'
 import { AppHeader } from '@/components/AppHeader'
 import { Button } from '@/components/ui/button'
 
@@ -526,18 +527,37 @@ export function ReviewPage() {
           </div>
         </div>
 
-        {/* Right Column: Move list — fills remaining width up to a max, then centers */}
-        <div className="w-full flex flex-col rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch h-64 lg:h-auto">
+        {/* Right Column: Move list and evaluation graph — fills remaining width up to a max, then centers */}
+        <div className="w-full flex flex-col gap-4 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch" style={{ height: 'calc(100vh - 13rem)' }}>
           <div className="p-3 border-b border-zinc-800 shrink-0">
-            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Moves</h3>
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Analysis</h3>
           </div>
-          <div className="flex-1 min-h-0">
-            <MoveList
-              moves={moves}
-              analyzedMoves={analyzedMoves as (AnalyzedMove | null)[]}
-              currentMoveIndex={currentIndex}
-              onMoveClick={setCurrentIndex}
-            />
+          <div className="flex-1 min-h-0 flex flex-col gap-4 p-3 overflow-hidden">
+            {/* Move list */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <MoveList
+                moves={moves}
+                analyzedMoves={analyzedMoves as (AnalyzedMove | null)[]}
+                currentMoveIndex={currentIndex}
+                onMoveClick={setCurrentIndex}
+              />
+            </div>
+
+            {/* Evaluation graph */}
+            {analyzedMoves.length > 0 && analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null).length > 0 && (
+              <div className="shrink-0">
+                <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Evaluation</h4>
+                <EvaluationGraph
+                  evaluations={analyzedMoves
+                    .map(m => m?.cpBefore ?? 0)
+                    .map(cp => Math.max(-1000, Math.min(1000, cp))) // Cap at ±10 pawns (1000 cp)
+                  }
+                  moveNumbers={analyzedMoves.map(m => m?.moveNumber ?? 0)}
+                  currentMoveIndex={currentIndex}
+                  height={150}
+                />
+              </div>
+            )}
           </div>
         </div>
 
