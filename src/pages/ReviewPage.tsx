@@ -528,7 +528,7 @@ export function ReviewPage() {
         </div>
 
         {/* Right Column: Move list and evaluation graph — fills remaining width up to a max, then centers */}
-        <div className="w-full flex flex-col gap-4 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch">
+        <div className="w-full flex flex-col gap-4 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden lg:flex-1 lg:max-w-xs lg:self-stretch" style={{ height: 'calc(100vh - 13rem)' }}>
           <div className="p-3 border-b border-zinc-800 shrink-0">
             <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Analysis</h3>
           </div>
