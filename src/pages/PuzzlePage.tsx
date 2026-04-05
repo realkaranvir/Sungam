@@ -14,6 +14,7 @@ export function PuzzlePage() {
   const [userMoves, setUserMoves] = useState<string[]>([])
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0)
   const [solved, setSolved] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
   const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white')
   const [infiniteMode, setInfiniteMode] = useState(() => {
@@ -257,6 +258,10 @@ export function PuzzlePage() {
           if (nextMoveIndex === solution.length - 1) {
             toast.success('✓ Correct!')
 
+            // Show Hikaru celebration GIF
+            setShowCelebration(true)
+            setTimeout(() => setShowCelebration(false), 3000)
+
             // Check if infinite mode is enabled
             if (infiniteMode) {
               // Debounce to prevent rapid successive solves
@@ -322,6 +327,7 @@ export function PuzzlePage() {
     }
 
     setSolved(false)
+    setShowCelebration(false)
     setUserMoves([])
     setCurrentMoveIndex(0)
     setLoading(true)
@@ -486,6 +492,17 @@ export function PuzzlePage() {
           </div>
         </div>
       </div>
+
+      {/* Hikaru Celebration GIF Overlay */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <img
+            src="/assets/hikaru/brilliant.gif"
+            alt="Hikaru Celebration"
+            className="max-w-2xl max-h-[80vh] object-contain"
+          />
+        </div>
+      )}
     </div>
   )
 }
