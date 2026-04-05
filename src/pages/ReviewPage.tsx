@@ -532,7 +532,7 @@ export function ReviewPage() {
           <div className="p-3 border-b border-zinc-800 shrink-0">
             <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Analysis</h3>
           </div>
-          <div className="flex-1 min-h-0 flex flex-col gap-4 p-3">
+          <div className="flex-1 min-h-0 flex flex-col gap-4 p-3 overflow-hidden">
             {/* Move list */}
             <div className="flex-1 min-h-0 overflow-y-auto">
               <MoveList
@@ -548,7 +548,10 @@ export function ReviewPage() {
               <div className="shrink-0">
                 <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Evaluation</h4>
                 <EvaluationGraph
-                  evaluations={analyzedMoves.map(m => m?.cpBefore ?? 0)}
+                  evaluations={analyzedMoves
+                    .map(m => m?.cpBefore ?? 0)
+                    .map(cp => Math.max(-50, Math.min(50, cp))) // Cap at ±50 pawns
+                  }
                   moveNumbers={analyzedMoves.map(m => m?.moveNumber ?? 0)}
                   currentMoveIndex={currentIndex}
                   height={150}
