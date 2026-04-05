@@ -1,5 +1,6 @@
 import type { MoveClassification, EngineInfo } from '@/types'
 import { Chess } from 'chess.js'
+import { openingBook } from './openingBook'
 
 // Piece values in centipawns for sacrifice detection
 const PIECE_VALUES: Record<string, number> = {
@@ -68,6 +69,14 @@ export function classifyMove(
   userColor: 'white' | 'black',
   fenBefore?: string,
 ): MoveClassification {
+  // Check if the move is in the opening book
+  if (openingBook.isLoaded() && fenBefore) {
+    const bookMove = openingBook.getBestMove(fenBefore)
+    if (bookMove && bookMove.move === playedMoveUci) {
+      return 'book'
+    }
+  }
+
   const winPct = (cp: number) => 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1)
 
   const isBestMove = playedMoveUci !== '' && engineBefore.pv === playedMoveUci
