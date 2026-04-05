@@ -32,66 +32,69 @@ export function AppHeader({
 
   return (
     <div className="border-b border-zinc-900 shrink-0 relative">
-      <div className="w-full px-6 py-3 flex items-center gap-6">
-        {onBack && (
+      <div className="w-full px-6 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="default"
+              onClick={onBack}
+              className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+
+          {(title || subtitle) && (
+            <div className="flex flex-col">
+              {title && <div className="text-sm font-semibold truncate text-white">{title}</div>}
+              {subtitle && <div className="text-xs text-zinc-500 truncate">{subtitle}</div>}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {right}
           <Button
             variant="ghost"
             size="default"
-            onClick={onBack}
+            onClick={() => navigate('/puzzles')}
+            title="Puzzles"
             className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <Puzzle className="h-4 w-4" />
+            <span className="ml-2 text-xs hidden sm:inline">Puzzles</span>
           </Button>
-        )}
 
-        {(title || subtitle) && (
-          <div className="flex-1 min-w-0 hidden sm:flex flex-col">
-            {title && <div className="text-sm font-semibold truncate text-white">{title}</div>}
-            {subtitle && <div className="text-xs text-zinc-500 truncate">{subtitle}</div>}
-          </div>
-        )}
+          <Button
+            variant="ghost"
+            size="default"
+            onClick={() => {
+              const username = localStorage.getItem(LS_KEY)
+              if (username) {
+                navigate(`/dashboard/${username}`)
+              } else {
+                navigate('/')
+              }
+            }}
+            title="Review games"
+            className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
+          >
+            <FileSearch className="h-4 w-4" />
+            <span className="ml-2 text-xs hidden sm:inline">Review</span>
+          </Button>
 
-        {right && <div className="flex items-center gap-2 shrink-0">{right}</div>}
-
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={() => navigate('/puzzles')}
-          title="Puzzles"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
-        >
-          <Puzzle className="h-4 w-4" />
-          <span className="ml-2 text-xs hidden sm:inline">Puzzles</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={() => {
-            const username = localStorage.getItem(LS_KEY)
-            if (username) {
-              navigate(`/dashboard/${username}`)
-            } else {
-              navigate('/')
-            }
-          }}
-          title="Review games"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
-        >
-          <FileSearch className="h-4 w-4" />
-          <span className="ml-2 text-xs hidden sm:inline">Review</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={handleChangeUser}
-          title="Change user"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
-        >
-          <UserRound className="h-4 w-4" />
-          <span className="ml-2 text-xs hidden sm:inline">Switch user</span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="default"
+            onClick={handleChangeUser}
+            title="Change user"
+            className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
+          >
+            <UserRound className="h-4 w-4" />
+            <span className="ml-2 text-xs hidden sm:inline">Switch user</span>
+          </Button>
+        </div>
       </div>
 
       {progress !== undefined && (
