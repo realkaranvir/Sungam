@@ -24,7 +24,7 @@ export function EvaluationBar({
   const isWhiteAdvantage = cp > 0 || (mate !== null && mate > 0)
 
   return (
-    <div className={cn('flex flex-col items-center gap-1 self-stretch', className)}>
+    <div className={cn('flex flex-col items-center gap-1 self-stretch', className)} style={{ height: 'calc(100vh - 13rem)' }}>
       {/* Score label on top */}
       <span
         className={cn(
