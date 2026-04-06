@@ -7,7 +7,7 @@ export class OpeningBookService {
   private loaded = false
   private loading = false
   private loadError: Error | null = null
-  private debug = false // Set to true to enable debug logging
+  private debug = true // Set to true to enable debug logging
 
   /**
    * Get all moves for a position from the opening book
@@ -29,7 +29,12 @@ export class OpeningBookService {
       console.log('Moves found:', this.book.get(key))
     }
 
-    return this.book.get(key) ?? []
+    const moves = this.book.get(key) ?? []
+    if (this.debug && moves.length > 0) {
+      console.log('Moves from book:', moves.map(m => ({ move: m.move, weight: m.weight })))
+    }
+
+    return moves
   }
 
   /**
