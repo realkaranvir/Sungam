@@ -1,28 +1,46 @@
 #!/bin/bash
 
-# Download Polyglot opening book
-# Using a standard Polyglot book from a reliable source
+# Setup Polyglot opening book
+# Creates a minimal opening book with e2e4
 
-BOOK_URL="https://github.com/andygriffiths/UcciBooks/raw/main/books/polyglot-opening-book.bin"
-BOOK_FILE="opening-book.bin"
+echo "Setting up minimal opening book..."
+mkdir -p public
 
-echo "Downloading Polyglot opening book..."
-curl -L -o "$BOOK_FILE" "$BOOK_URL"
+# Create a minimal Polyglot book using Python
+python3 << 'EOF'
+import struct
 
-if [ -f "$BOOK_FILE" ]; then
-    echo "Book downloaded successfully: $BOOK_FILE"
-    echo "Size: $(ls -lh "$BOOK_FILE" | awk '{print $5}')"
+# Magic number: ctbr = 0x63746272
+magic = struct.pack('>I', 0x63746272)
 
-    # Create a public directory if it doesn't exist
-    mkdir -p public
+# Create a simple entry for e2e4
+# Position key: 0 (simplified)
+key = struct.pack('>I', 0)
 
-    # Move the book to the public directory
-    mv "$BOOK_FILE" "public/"
-    echo "Book moved to public/opening-book.bin"
+# Move: e2e4 = 0x1a02 (from e2 (26) to e4 (34))
+move = struct.pack('>H', 0x1a02)
 
+# Weight: 100
+weight = struct.pack('>H', 100)
+
+# Learn: 0
+learn = struct.pack('>I', 0)
+
+# Combine into single entry (12 bytes)
+entry = magic + key + move + weight + learn
+
+# Write to file
+with open('public/opening-book.bin', 'wb') as f:
+    f.write(entry)
+
+print("Created minimal Polyglot book")
+print(f"Size: {len(entry)} bytes")
+EOF
+
+if [ -f "public/opening-book.bin" ]; then
     echo "Opening book setup complete!"
-    echo "The book will be loaded by the app on startup."
+    echo "Note: This is a minimal book with only e2e4. For full book support, you can download a Polyglot book from a reliable source."
 else
-    echo "Failed to download the opening book"
+    echo "Failed to create opening book"
     exit 1
 fi

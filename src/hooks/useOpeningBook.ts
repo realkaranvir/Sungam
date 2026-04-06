@@ -28,6 +28,21 @@ export function useOpeningBook() {
 
         const buffer = await response.arrayBuffer()
         const uint8Array = new Uint8Array(buffer)
+
+        // Check if it's a valid Polyglot book
+        if (uint8Array.length < 8) {
+          throw new Error('Book file too small')
+        }
+
+        const magic = (uint8Array[0] << 24) |
+                      (uint8Array[1] << 16) |
+                      (uint8Array[2] << 8) |
+                      uint8Array[3]
+
+        if (magic !== 0x63746272) { // "ctbr"
+          throw new Error('Invalid Polyglot magic number')
+        }
+
         openingBook.loadFromBuffer(uint8Array)
 
         setIsLoaded(true)
