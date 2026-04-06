@@ -1,0 +1,16 @@
+name: Preview Link Comment
+on:
+  deployment_status:
+
+jobs:
+  post-comment:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post Preview Link
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            🚀 **Render Preview Ready!**
+            View it here: ${{ github.event.deployment_status.target_url }}
+          allow-repeats: false
