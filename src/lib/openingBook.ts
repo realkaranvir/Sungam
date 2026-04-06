@@ -7,6 +7,7 @@ export class OpeningBookService {
   private loaded = false
   private loading = false
   private loadError: Error | null = null
+  private debug = true // Set to true to enable debug logging
 
   /**
    * Get all moves for a position from the opening book
@@ -21,6 +22,12 @@ export class OpeningBookService {
 
     // Parse FEN to get the position key using Zobrist hashing
     const key = getZobristKey(currentPosition)
+
+    if (this.debug) {
+      console.log('Position:', currentPosition)
+      console.log('Key:', key.toString(16))
+      console.log('Moves found:', this.book.get(key))
+    }
 
     return this.book.get(key) ?? []
   }
@@ -100,6 +107,19 @@ export class OpeningBookService {
       this.book = parsePolyglotBook(buffer)
       this.loaded = true
       this.loading = false
+
+      // Log debug info
+      const stats = this.getStats()
+      console.log('Opening book loaded:', stats)
+      if (this.debug && stats.size > 0) {
+        console.log('Sample keys in book:')
+        let count = 0
+        for (const [key, moves] of this.book.entries()) {
+          console.log(`  Key: ${key.toString(16)}, Moves: ${moves.length}`)
+          count++
+          if (count >= 5) break
+        }
+      }
     } catch (error) {
       this.loadError = error as Error
       this.loaded = false
