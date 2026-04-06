@@ -2,6 +2,11 @@ name: Preview Link Comment
 on:
   deployment_status:
 
+permissions:
+  pull-requests: write
+  contents: read
+  deployments: read
+
 jobs:
   post-comment:
     if: github.event.deployment_status.state == 'success'
@@ -11,6 +16,6 @@ jobs:
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            🚀 **Render Preview Ready!**
-            View it here: ${{ github.event.deployment_status.target_url }}
+            **Render QA Deployment Ready**
+            View it here: ${{ github.event.deployment_status.environment_url }}
           allow-repeats: false
