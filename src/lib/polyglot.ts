@@ -116,6 +116,10 @@ export function getPositionKey(fen: string): bigint {
     }
   }
 
+  // Debug logging
+  console.log('Position key calculated for:', fen.substring(0, 20) + '...')
+  console.log('Key:', hash.toString(16), 'Decimal:', hash)
+
   return hash
 }
 
@@ -196,6 +200,12 @@ export function parsePolyglotBook(buffer: Uint8Array): Map<bigint, OpeningBookMo
 
     offset += 12
   }
+
+  console.log('Book entries:', Array.from(entries.entries()).map(([key, moves]) => ({
+    key: key.toString(16),
+    move: moves[0].move,
+    weight: moves[0].weight
+  })))
 
   return entries
 }
