@@ -93,7 +93,7 @@ const ZOBRIST_KEYS: bigint[][] = []
 function initializeZobristKeys() {
   for (let i = 0; i < 64; i++) {
     ZOBRIST_KEYS[i] = []
-    for (let j = 0; j < 13; j++) {
+    for (let j = 0; j < 6; j++) {
       ZOBRIST_KEYS[i][j] = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
     }
   }
@@ -104,7 +104,7 @@ initializeZobristKeys()
 
 /**
  * Parse a FEN string to get the position key
- * Uses Zobrist hashing for proper position identification
+ * Uses simplified Zobrist hashing for piece positions only
  */
 export function getPositionKey(fen: string): bigint {
   let hash = 0n
@@ -130,34 +130,11 @@ export function getPositionKey(fen: string): bigint {
     }
   }
 
-  // Handle castling rights (simplified)
-  // Castling rights are represented by 4 bits (K, Q, k, q)
-  if (parts.length > 1) {
-    const castling = parts[1]
-    if (castling.includes('K')) hash ^= ZOBRIST_KEYS[0][6]
-    if (castling.includes('Q')) hash ^= ZOBRIST_KEYS[0][7]
-    if (castling.includes('k')) hash ^= ZOBRIST_KEYS[7][6]
-    if (castling.includes('q')) hash ^= ZOBRIST_KEYS[7][7]
-  }
-
-  // Handle en passant square (simplified)
-  if (parts.length > 2 && parts[2] !== '-') {
-    const epSquare = parts[2]
-    const epIndex = squareToIndex(epSquare)
-    hash ^= ZOBRIST_KEYS[epIndex][12] // EN PASSANT token
-  }
-
-  // Handle turn (simplified)
-  if (parts.length > 3 && parts[3] === 'b') {
-    hash ^= ZOBRIST_KEYS[0][13] // BLACK TO MOVE token
-  }
-
   return hash
 }
 
 /**
  * Get piece index for Zobrist hashing
- * 0-5: pieces, 6: EN PASSANT, 7: CASTLE_WHITE_KING, 8: CASTLE_WHITE_QUEEN, 9: CASTLE_BLACK_KING, 10: CASTLE_BLACK_QUEEN, 11: WHITE_TO_MOVE, 12: BLACK_TO_MOVE
  */
 function getPieceIndex(char: string): number {
   const pieceMap: Record<string, number> = {
