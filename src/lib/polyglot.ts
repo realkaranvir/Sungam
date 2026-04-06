@@ -89,12 +89,17 @@ function pieceToPromotion(piece: string): number {
 // Pre-computed Zobrist keys for all squares and piece types
 const ZOBRIST_KEYS: bigint[][] = []
 
-// Initialize Zobrist keys
+// Initialize Zobrist keys deterministically
 function initializeZobristKeys() {
+  // Use a fixed seed for deterministic keys
+  const seed = 12345n
   for (let i = 0; i < 64; i++) {
     ZOBRIST_KEYS[i] = []
     for (let j = 0; j < 6; j++) {
-      ZOBRIST_KEYS[i][j] = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
+      // Simple deterministic pseudo-random hash
+      let hash = seed + BigInt(i * 7 + j)
+      hash = (hash * 9301n + 49297n) % 233280n
+      ZOBRIST_KEYS[i][j] = hash
     }
   }
 }
