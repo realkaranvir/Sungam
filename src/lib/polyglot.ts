@@ -41,16 +41,15 @@ export function encodeMove(uci: string): number {
  * Decode a Polyglot move encoding to UCI
  */
 export function decodeMove(move: number): string {
-  const from = (move >> 16) & 0x3f
-  const to = (move >> 8) & 0x3f
-  const promotion = move & 0xff
+  // Polyglot move encoding: (from << 8) | to
+  const from = (move >> 8) & 0x3f
+  const to = move & 0xff
+  // Promotion is not stored in the 2-byte move field
 
-  let promotionPiece = ''
-  if (promotion !== 0) {
-    promotionPiece = promotionToPiece(promotion)
-  }
+  let fromSquare = indexToSquare(from)
+  let toSquare = indexToSquare(to)
 
-  return `${indexToSquare(from)}${indexToSquare(to)}${promotionPiece}`
+  return `${fromSquare}${toSquare}`
 }
 
 /**
