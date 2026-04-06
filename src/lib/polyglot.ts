@@ -86,6 +86,87 @@ function pieceToPromotion(piece: string): number {
   return promotionPieces[piece.toLowerCase()] ?? 0
 }
 
+// Pre-computed Zobrist keys for all squares and piece types
+const ZOBRIST_KEYS: bigint[][] = []
+
+// Initialize Zobrist keys
+function initializeZobristKeys() {
+  for (let i = 0; i < 64; i++) {
+    ZOBRIST_KEYS[i] = []
+    for (let j = 0; j < 13; j++) {
+      ZOBRIST_KEYS[i][j] = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
+    }
+  }
+}
+
+// Initialize on first use
+initializeZobristKeys()
+
+/**
+ * Parse a FEN string to get the position key
+ * Uses Zobrist hashing for proper position identification
+ */
+export function getPositionKey(fen: string): bigint {
+  let hash = 0n
+
+  // Parse FEN to get piece positions
+  const parts = fen.split(' ')
+  const boardPart = parts[0]
+  const rows = boardPart.split('/')
+
+  for (let row = 0; row < 8; row++) {
+    let col = 0
+    for (let char of rows[row]) {
+      if (char.match(/[0-9]/)) {
+        col += parseInt(char)
+      } else {
+        // Piece to index: p=0, n=1, b=2, r=3, q=4, k=5
+        const pieceIndex = getPieceIndex(char)
+        if (pieceIndex !== -1) {
+          hash ^= ZOBRIST_KEYS[row * 8 + col][pieceIndex]
+        }
+        col++
+      }
+    }
+  }
+
+  // Handle castling rights (simplified)
+  // Castling rights are represented by 4 bits (K, Q, k, q)
+  if (parts.length > 1) {
+    const castling = parts[1]
+    if (castling.includes('K')) hash ^= ZOBRIST_KEYS[0][6]
+    if (castling.includes('Q')) hash ^= ZOBRIST_KEYS[0][7]
+    if (castling.includes('k')) hash ^= ZOBRIST_KEYS[7][6]
+    if (castling.includes('q')) hash ^= ZOBRIST_KEYS[7][7]
+  }
+
+  // Handle en passant square (simplified)
+  if (parts.length > 2 && parts[2] !== '-') {
+    const epSquare = parts[2]
+    const epIndex = squareToIndex(epSquare)
+    hash ^= ZOBRIST_KEYS[epIndex][12] // EN PASSANT token
+  }
+
+  // Handle turn (simplified)
+  if (parts.length > 3 && parts[3] === 'b') {
+    hash ^= ZOBRIST_KEYS[0][13] // BLACK TO MOVE token
+  }
+
+  return hash
+}
+
+/**
+ * Get piece index for Zobrist hashing
+ * 0-5: pieces, 6: EN PASSANT, 7: CASTLE_WHITE_KING, 8: CASTLE_WHITE_QUEEN, 9: CASTLE_BLACK_KING, 10: CASTLE_BLACK_QUEEN, 11: WHITE_TO_MOVE, 12: BLACK_TO_MOVE
+ */
+function getPieceIndex(char: string): number {
+  const pieceMap: Record<string, number> = {
+    'p': 0, 'n': 1, 'b': 2, 'r': 3, 'q': 4, 'k': 5,
+    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5
+  }
+  return pieceMap[char] ?? -1
+}
+
 /**
  * Polyglot promotion encoding to piece
  */

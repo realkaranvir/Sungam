@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import { parsePolyglotBook } from './polyglot'
+import { parsePolyglotBook, getPositionKey as getZobristKey } from './polyglot'
 import type { OpeningBookMove } from './polyglot'
 
 export class OpeningBookService {
@@ -19,8 +19,8 @@ export class OpeningBookService {
     const chess = new Chess(fen)
     const currentPosition = chess.fen()
 
-    // Parse FEN to get the position key
-    const key = this.getPositionKey(currentPosition)
+    // Parse FEN to get the position key using Zobrist hashing
+    const key = getZobristKey(currentPosition)
 
     return this.book.get(key) ?? []
   }
@@ -85,20 +85,6 @@ export class OpeningBookService {
     if (!move) return 'Unknown Opening'
 
     return move.san
-  }
-
-  /**
-   * Parse a FEN string to get the position key
-   * This is a simplified version - for production, use a proper chess-specific key generator
-   */
-  private getPositionKey(fen: string): bigint {
-    // Simple hash based on FEN string
-    // In production, use a proper Zobrist hash for faster lookups
-    let hash = 0n
-    for (let i = 0; i < fen.length; i++) {
-      hash = (hash * 31n + BigInt(fen.charCodeAt(i))) % (2n ** 64n)
-    }
-    return hash
   }
 
   /**
