@@ -134,14 +134,6 @@ function getPieceIndex(char: string): number {
 }
 
 /**
- * Polyglot promotion encoding to piece
- */
-function promotionToPiece(code: number): string {
-  const pieces = ['', 'n', 'b', 'r', 'q']
-  return pieces[code] ?? ''
-}
-
-/**
  * Read a big-endian 4-byte integer from buffer
  */
 function readBigEndianUint32(buffer: Uint8Array, offset: number): number {
