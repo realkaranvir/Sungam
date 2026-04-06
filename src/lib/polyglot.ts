@@ -86,32 +86,12 @@ function pieceToPromotion(piece: string): number {
   return promotionPieces[piece.toLowerCase()] ?? 0
 }
 
-// Pre-computed Zobrist keys for all squares and piece types
-const ZOBRIST_KEYS: bigint[][] = []
-
-// Initialize Zobrist keys deterministically
-function initializeZobristKeys() {
-  // Use a fixed seed for deterministic keys
-  const seed = 12345n
-  for (let i = 0; i < 64; i++) {
-    ZOBRIST_KEYS[i] = []
-    for (let j = 0; j < 6; j++) {
-      // Simple deterministic pseudo-random hash
-      let hash = seed + BigInt(i * 7 + j)
-      hash = (hash * 9301n + 49297n) % 233280n
-      ZOBRIST_KEYS[i][j] = hash
-    }
-  }
-}
-
-// Initialize on first use
-initializeZobristKeys()
-
 /**
- * Parse a FEN string to get the position key
- * Uses simplified Zobrist hashing for piece positions only
+ * Simple hash function for position keys
+ * This matches the minimal book we created
  */
 export function getPositionKey(fen: string): bigint {
+  // For the minimal book, we use a simple hash based on piece positions
   let hash = 0n
 
   // Parse FEN to get piece positions
@@ -128,7 +108,8 @@ export function getPositionKey(fen: string): bigint {
         // Piece to index: p=0, n=1, b=2, r=3, q=4, k=5
         const pieceIndex = getPieceIndex(char)
         if (pieceIndex !== -1) {
-          hash ^= ZOBRIST_KEYS[row * 8 + col][pieceIndex]
+          // Simple hash: position * piece_type + 1
+          hash ^= BigInt((row * 8 + col) * (pieceIndex + 1))
         }
         col++
       }
@@ -139,7 +120,7 @@ export function getPositionKey(fen: string): bigint {
 }
 
 /**
- * Get piece index for Zobrist hashing
+ * Get piece index for hashing
  */
 function getPieceIndex(char: string): number {
   const pieceMap: Record<string, number> = {
@@ -161,10 +142,12 @@ function promotionToPiece(code: number): string {
  * Read a big-endian 4-byte integer from buffer
  */
 function readBigEndianUint32(buffer: Uint8Array, offset: number): number {
-  return (buffer[offset] << 24) |
-         (buffer[offset + 1] << 16) |
-         (buffer[offset + 2] << 8) |
-         buffer[offset + 3]
+  return (
+    (buffer[offset] << 24) |
+    (buffer[offset + 1] << 16) |
+    (buffer[offset + 2] << 8) |
+    buffer[offset + 3]
+  )
 }
 
 /**
