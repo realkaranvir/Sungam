@@ -201,7 +201,7 @@ export function parsePolyglotBook(buffer: Uint8Array): Map<bigint, OpeningBookMo
     offset += 12
   }
 
-  console.log('Book entries:', Array.from(entries.entries()).map(([key, moves]) => ({
+  console.log('Book entries parsed:', Array.from(entries.entries()).map(([key, moves]) => ({
     key: key.toString(16),
     move: moves[0].move,
     weight: moves[0].weight
