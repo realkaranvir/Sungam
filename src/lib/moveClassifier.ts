@@ -72,7 +72,14 @@ export function classifyMove(
   // Check if the move is in the opening book
   if (openingBook.isLoaded() && fenBefore) {
     const bookMove = openingBook.getBestMove(fenBefore)
+    console.log('Opening book check:', {
+      fen: fenBefore,
+      playedMove: playedMoveUci,
+      bookMove: bookMove?.move || null,
+      isLoaded: openingBook.isLoaded()
+    })
     if (bookMove && bookMove.move === playedMoveUci) {
+      console.log('✓ Move is in book!')
       return 'book'
     }
   }
