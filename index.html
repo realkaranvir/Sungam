@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sungam — Chess Game Review</title>
+    <script>
+      (function() {
+        const host = window.location.hostname;
+        const isProd = host === "sungam.onrender.com";
+        const isDev = host === "sungam-develop.onrender.com";
+        const isRenderPreview = host.endsWith(".onrender.com");
+
+        // Only load if it's a Render preview, but NOT prod or dev
+        if (isRenderPreview && !isProd && !isDev) {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/npm/eruda";
+          script.onload = function () {
+            eruda.init();
+            console.log("PR Preview Debugger Initialized");
+          };
+          document.head.appendChild(script);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
