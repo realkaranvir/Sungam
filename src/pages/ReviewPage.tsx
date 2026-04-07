@@ -223,7 +223,7 @@ export function ReviewPage() {
       const detectedOpening = openingBook.getOpeningName(moveHistory) || null
 
       console.log('=== Opening Detection Debug ===')
-      console.log('Move history (UCI):', moveHistory)
+      console.log('Move history (SAN):', moveHistory)
       console.log('Moves from state:', moves.map(m => ({ san: m.san, uci: m.uci })))
       console.log('Detected opening:', detectedOpening)
 

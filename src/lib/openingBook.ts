@@ -33,26 +33,32 @@ export class OpeningBookService {
    */
   getOpeningName(moveHistory: string[]): string | null {
     if (!this.loaded || this.loading) {
+      console.log('getOpeningName: Not loaded')
       return null
     }
 
+    console.log('getOpeningName: Checking', moveHistory.length, 'moves')
+    console.log('  First 3 moves:', moveHistory.slice(0, 3))
+
     // Find the opening by matching move history
     for (const opening of POPULAR_OPENINGS) {
-      if (opening.moves.length > moveHistory.length) continue
-
+      // Check if the played moves match the opening's move sequence (only first N moves)
       let match = true
-      for (let i = 0; i < moveHistory.length; i++) {
-        if (moveHistory[i] !== opening.moves[i]) {
+      for (let i = 0; i < opening.moves.length; i++) {
+        if (i >= moveHistory.length || moveHistory[i] !== opening.moves[i]) {
           match = false
+          console.log(`  Opening ${opening.shortName}: Move ${i+1} mismatch: expected ${opening.moves[i]}, got ${moveHistory[i] || 'none'}`)
           break
         }
       }
 
       if (match) {
+        console.log(`✓ Opening detected: ${opening.shortName}`)
         return opening.shortName
       }
     }
 
+    console.log('✗ No opening detected')
     return null
   }
 
