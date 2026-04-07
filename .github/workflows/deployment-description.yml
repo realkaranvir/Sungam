@@ -13,22 +13,49 @@ jobs:
       # Get PR number by matching deployment SHA with branch
       - name: Get PR Number
         id: get_pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PR=$(gh pr list --state open --json number,headRefOid --jq ".[] | select(.headRefOid == \"${{ github.event.deployment.sha }}\") | .number" | head -n 1)
-          echo "nr=$PR" >> $GITHUB_OUTPUT
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: context.ref
+            });
+
+            const pr = prs.data.find(p => p.head.sha === '${{ github.event.deployment.sha }}');
+            if (pr) {
+              core.setOutput('number', pr.number);
+            }
 
       # Update PR description with preview link
       - name: Update PR Description
-        if: steps.get_pr.outputs.nr != ''
-        uses: necolas/update-pull-request-body@v1
+        if: steps.get_pr.outputs.number != ''
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.get_pr.outputs.nr }}
-          body: |
-            **🚀 Render QA Deployment Ready**
-            View it here: ${{ github.event.deployment_status.environment_url }}
+          script: |
+            const prNumber = '${{ steps.get_pr.outputs.number }}';
+            const previewUrl = '${{ github.event.deployment_status.environment_url }}';
+
+            // Get current PR description
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Add preview link to the top of the description
+            const newBody = `**🚀 Render QA Deployment Ready**
+            View it here: ${previewUrl}
 
             ---
-            ${{ github.event.pull_request.body }}
+
+            ${pr.body}`;
+
+            // Update the PR description
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              body: newBody
+            });
