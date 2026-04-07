@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
 import { formatScore } from '@/lib/moveClassifier'
-import { openingBook } from '@/lib/openingBook'
+import { detectOpening } from '@/lib/openings'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
@@ -180,8 +180,8 @@ export function ReviewPage() {
             : cpAfter - cpBefore
 
         // Get opening name if move is in book
-        const openingName = (classification === 'book' && openingBook.isLoaded())
-          ? openingBook.getOpeningName(move.fenBefore) ?? undefined
+        const openingName = (classification === 'book')
+          ? detectOpening(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
           : undefined
 
         analyzed.push({
@@ -196,7 +196,7 @@ export function ReviewPage() {
           classification,
           bestMoveSan,
           bestMoveUci: infoBeforeMove.pv,
-          openingName,
+          openingName: openingName || undefined,
         })
 
         infos.push(infoAfterMove)
