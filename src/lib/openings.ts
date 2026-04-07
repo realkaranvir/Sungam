@@ -267,11 +267,9 @@ export function detectOpening(moves: string[]): string | null {
   if (moves.length === 0) return null
 
   for (const opening of POPULAR_OPENINGS) {
-    if (opening.moves.length > moves.length) continue
-
-    // Check if the played moves match the opening's move sequence
+    // Check if the played moves match the opening's move sequence (only first N moves)
     let match = true
-    for (let i = 0; i < moves.length; i++) {
+    for (let i = 0; i < opening.moves.length; i++) {
       if (moves[i] !== opening.moves[i]) {
         match = false
         break
