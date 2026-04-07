@@ -6,6 +6,7 @@ export type MoveClassification =
   | 'inaccuracy'
   | 'mistake'
   | 'blunder'
+  | 'book'
 
 export interface EngineLine {
   index: number       // multipv index: 1, 2, or 3
@@ -35,6 +36,7 @@ export interface AnalyzedMove {
   classification: MoveClassification
   bestMoveSan: string
   bestMoveUci: string
+  openingName?: string // Name of the opening if in book
 }
 
 export interface ChessComArchive {
@@ -125,5 +127,11 @@ export const CLASSIFICATION_META: Record<
     symbol: '??',
     color: 'text-red-400',
     bgColor: 'bg-red-400/20',
+  },
+  book: {
+    label: 'Book Move',
+    symbol: '📚',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-400/20',
   },
 }

@@ -68,6 +68,9 @@ export function classifyMove(
   userColor: 'white' | 'black',
   fenBefore?: string,
 ): MoveClassification {
+  // Book moves are classified separately (not here)
+  // See ReviewPage for opening book detection
+
   const winPct = (cp: number) => 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1)
 
   const isBestMove = playedMoveUci !== '' && engineBefore.pv === playedMoveUci

@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
 import { formatScore } from '@/lib/moveClassifier'
+import { getOpeningName } from '@/lib/openingBook'
+import { POPULAR_OPENINGS } from '@/lib/openings'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
@@ -65,18 +67,21 @@ export function ReviewPage() {
     engineInfos: (EngineInfo | null)[]
     progress: number
     isAnalyzing: boolean
+    currentOpening: string | null
   }
   const [analysisState, setAnalysisState] = useState<AnalysisState>({
     analyzedMoves: [],
     engineInfos: [],
     progress: 0,
     isAnalyzing: false,
+    currentOpening: null,
   })
   const analyzedMoves = analysisState.analyzedMoves
   const engineInfos = analysisState.engineInfos
   const isAnalyzing = analysisState.isAnalyzing
   const analysisProgress = analysisState.progress
   const analysisAbortRef = useRef(false)
+  const currentOpeningRef = useRef<string | null>(null)
 
   // Snap board size to multiple of 8 to prevent subpixel gaps in the grid
   const boardMeasureRef = useRef<HTMLDivElement | null>(null)
@@ -111,6 +116,7 @@ export function ReviewPage() {
       engineInfos: new Array(moves.length).fill(null),
       progress: 0,
       isAnalyzing: true,
+      currentOpening: null,
     })
     analysisAbortRef.current = false
 
@@ -142,10 +148,20 @@ export function ReviewPage() {
         return
       }
 
+      // Detect the opening BEFORE classifying moves
+      const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
+      const detectedOpening = getOpeningName(moveHistory) || null
+
+      if (detectedOpening) {
+        // Opening detected - use ref for book move classification
+        currentOpeningRef.current = detectedOpening
+      }
+
       // Now classify each move
       const analyzed: AnalyzedMove[] = []
       const infos: EngineInfo[] = []
 
+      // Now classify each move
       for (let i = 0; i < moves.length; i++) {
         const move = moves[i]
         const infoBeforeMove = engineResults[i]  // position before this move
@@ -156,7 +172,7 @@ export function ReviewPage() {
         const cpBefore = move.color === 'w' ? infoBeforeMove.score : -infoBeforeMove.score
         const cpAfter  = move.color === 'w' ? -infoAfterMove.score : infoAfterMove.score
 
-        const classification = classifyMove(
+        let classification = classifyMove(
           cpBefore,
           cpAfter,
           move.color,
@@ -165,6 +181,16 @@ export function ReviewPage() {
           userColor,
           move.fenBefore,
         )
+
+        // Check if the move is in the opening book
+        // Use ref instead of state since state updates are async
+        if (currentOpeningRef.current && currentOpeningRef.current.length > i) {
+          // Get the detected opening directly
+          const opening = POPULAR_OPENINGS.find(o => o.shortName === currentOpeningRef.current)
+          if (opening && opening.moves[i] === move.san) {
+            classification = 'book'
+          }
+        }
 
         // Check if the played move matches the best move
         // The played move in UCI: we get it from fenBefore
@@ -178,6 +204,11 @@ export function ReviewPage() {
             ? cpBefore - cpAfter
             : cpAfter - cpBefore
 
+        // Get opening name if move is in book
+        const openingName = (classification === 'book')
+          ? getOpeningName(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
+          : undefined
+
         analyzed.push({
           san: move.san,
           fen: move.fen,
@@ -190,17 +221,23 @@ export function ReviewPage() {
           classification,
           bestMoveSan,
           bestMoveUci: infoBeforeMove.pv,
+          openingName: openingName || undefined,
         })
 
         infos.push(infoAfterMove)
       }
 
+      // Update ref synchronously so it's available during classification
+      currentOpeningRef.current = detectedOpening
+
+      // Final state update
       setAnalysisState((prev) => ({
         ...prev,
         analyzedMoves: analyzed,
         engineInfos: infos,
         isAnalyzing: false,
         progress: 100,
+        currentOpening: currentOpeningRef.current,
       }))
     }
 
@@ -533,6 +570,16 @@ export function ReviewPage() {
             <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Analysis</h3>
           </div>
           <div className="flex-1 min-h-0 flex flex-col gap-4 p-3 overflow-hidden">
+            {/* Opening name header */}
+            {analysisState.currentOpening && (
+              <div className="shrink-0">
+                <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                  <span>Opening:</span>
+                  <span className="text-white">{analysisState.currentOpening}</span>
+                </h4>
+              </div>
+            )}
+
             {/* Move list */}
             <div className="flex-1 min-h-0 overflow-y-auto">
               <MoveList
