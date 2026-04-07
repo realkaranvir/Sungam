@@ -66,12 +66,14 @@ export function ReviewPage() {
     engineInfos: (EngineInfo | null)[]
     progress: number
     isAnalyzing: boolean
+    currentOpening: string | null
   }
   const [analysisState, setAnalysisState] = useState<AnalysisState>({
     analyzedMoves: [],
     engineInfos: [],
     progress: 0,
     isAnalyzing: false,
+    currentOpening: null,
   })
   const analyzedMoves = analysisState.analyzedMoves
   const engineInfos = analysisState.engineInfos
@@ -112,6 +114,7 @@ export function ReviewPage() {
       engineInfos: new Array(moves.length).fill(null),
       progress: 0,
       isAnalyzing: true,
+      currentOpening: null,
     })
     analysisAbortRef.current = false
 
@@ -168,12 +171,14 @@ export function ReviewPage() {
         )
 
         // Check if the move is in the opening book
-        const openingMoves = openingBook.getMoves(moves.slice(0, i + 1).map(m => m.uci))
-        if (openingMoves.length > 0) {
-          // Check if this move is in the opening's move sequence
-          const opening = openingMoves[0]
-          if (opening.moves[i] === move.uci) {
-            classification = 'book'
+        if (analysisState.currentOpening) {
+          const openingMoves = openingBook.getMoves(moves.slice(0, i + 1).map(m => m.uci))
+          if (openingMoves.length > 0) {
+            const opening = openingMoves[0]
+            // Mark all moves in the opening sequence as book moves
+            if (i < opening.moves.length && opening.moves[i] === move.uci) {
+              classification = 'book'
+            }
           }
         }
 
@@ -212,12 +217,16 @@ export function ReviewPage() {
         infos.push(infoAfterMove)
       }
 
+      // Detect the opening if all moves are part of it
+      const detectedOpening = openingBook.getOpeningName(moves.map(m => m.uci)) || null
+
       setAnalysisState((prev) => ({
         ...prev,
         analyzedMoves: analyzed,
         engineInfos: infos,
         isAnalyzing: false,
         progress: 100,
+        currentOpening: detectedOpening,
       }))
     }
 
@@ -550,6 +559,16 @@ export function ReviewPage() {
             <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Analysis</h3>
           </div>
           <div className="flex-1 min-h-0 flex flex-col gap-4 p-3 overflow-hidden">
+            {/* Opening name header */}
+            {analysisState.currentOpening && (
+              <div className="shrink-0">
+                <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                  <span>Opening:</span>
+                  <span className="text-white">{analysisState.currentOpening}</span>
+                </h4>
+              </div>
+            )}
+
             {/* Move list */}
             <div className="flex-1 min-h-0 overflow-y-auto">
               <MoveList
