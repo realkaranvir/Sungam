@@ -147,13 +147,38 @@ export function ReviewPage() {
         return
       }
 
+      // Detect the opening BEFORE classifying moves
+      const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
+      const detectedOpening = openingBook.getOpeningName(moveHistory) || null
+
+      console.log('=== Opening Detection Debug ===')
+      console.log('Move history:', moveHistory)
+      console.log('First 3 moves (SAN):', moveHistory.slice(0, 3))
+      console.log('Moves from state:', moves.map(m => ({ san: m.san, uci: m.uci })))
+      console.log('Detected opening:', detectedOpening)
+
+      if (detectedOpening) {
+        console.log('✓ Opening detected:', detectedOpening)
+        // Get the actual opening object to check moves
+        const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
+        if (opening) {
+          console.log('Opening sequence:', opening.moves)
+        }
+      } else {
+        console.log('✗ No opening detected')
+      }
+
+      // Update state with detected opening BEFORE classifying moves
+      setAnalysisState((prev) => ({
+        ...prev,
+        currentOpening: detectedOpening,
+      }))
+
       // Now classify each move
       const analyzed: AnalyzedMove[] = []
       const infos: EngineInfo[] = []
 
-      // Get move history for opening detection
-      const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
-
+      // Now classify each move
       for (let i = 0; i < moves.length; i++) {
         const move = moves[i]
         const infoBeforeMove = engineResults[i]  // position before this move
@@ -175,6 +200,7 @@ export function ReviewPage() {
         )
 
         // Check if the move is in the opening book
+        // This works because we set currentOpening BEFORE the loop
         if (analysisState.currentOpening && analysisState.currentOpening.length > i) {
           // Get the detected opening directly
           const opening = POPULAR_OPENINGS.find(o => o.shortName === analysisState.currentOpening)
@@ -219,32 +245,13 @@ export function ReviewPage() {
         infos.push(infoAfterMove)
       }
 
-      // Detect the opening if all moves are part of it
-      const detectedOpening = openingBook.getOpeningName(moveHistory) || null
-
-      console.log('=== Opening Detection Debug ===')
-      console.log('Move history (SAN):', moveHistory)
-      console.log('Moves from state:', moves.map(m => ({ san: m.san, uci: m.uci })))
-      console.log('Detected opening:', detectedOpening)
-
-      if (detectedOpening) {
-        console.log('✓ Opening detected:', detectedOpening)
-        // Get the actual opening object to check moves
-        const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
-        if (opening) {
-          console.log('Opening sequence:', opening.moves)
-        }
-      } else {
-        console.log('✗ No opening detected')
-      }
-
+      // Final state update
       setAnalysisState((prev) => ({
         ...prev,
         analyzedMoves: analyzed,
         engineInfos: infos,
         isAnalyzing: false,
         progress: 100,
-        currentOpening: detectedOpening,
       }))
     }
 
