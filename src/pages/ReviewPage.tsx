@@ -81,6 +81,7 @@ export function ReviewPage() {
   const isAnalyzing = analysisState.isAnalyzing
   const analysisProgress = analysisState.progress
   const analysisAbortRef = useRef(false)
+  const currentOpeningRef = useRef<string | null>(null)
 
   // Snap board size to multiple of 8 to prevent subpixel gaps in the grid
   const boardMeasureRef = useRef<HTMLDivElement | null>(null)
@@ -168,12 +169,6 @@ export function ReviewPage() {
         console.log('✗ No opening detected')
       }
 
-      // Update state with detected opening BEFORE classifying moves
-      setAnalysisState((prev) => ({
-        ...prev,
-        currentOpening: detectedOpening,
-      }))
-
       // Now classify each move
       const analyzed: AnalyzedMove[] = []
       const infos: EngineInfo[] = []
@@ -200,12 +195,12 @@ export function ReviewPage() {
         )
 
         // Check if the move is in the opening book
-        // This works because we set currentOpening BEFORE the loop
-        if (analysisState.currentOpening && analysisState.currentOpening.length > i) {
-          console.log(`Checking move ${i}: ${move.san}, currentOpening: ${analysisState.currentOpening}, length: ${analysisState.currentOpening.length}`)
+        // Use ref instead of state since state updates are async
+        if (currentOpeningRef.current && currentOpeningRef.current.length > i) {
+          console.log(`Checking move ${i}: ${move.san}, currentOpening: ${currentOpeningRef.current}, length: ${currentOpeningRef.current.length}`)
 
           // Get the detected opening directly
-          const opening = POPULAR_OPENINGS.find(o => o.shortName === analysisState.currentOpening)
+          const opening = POPULAR_OPENINGS.find(o => o.shortName === currentOpeningRef.current)
           if (opening) {
             console.log(`Opening moves:`, opening.moves)
             console.log(`Current move index ${i}:`, opening.moves[i], `vs move.san:`, move.san)
@@ -217,10 +212,10 @@ export function ReviewPage() {
               console.log(`✗ Move ${i} NOT a book move:`, opening.moves[i], `!=`, move.san)
             }
           } else {
-            console.log(`✗ Opening not found: ${analysisState.currentOpening}`)
+            console.log(`✗ Opening not found: ${currentOpeningRef.current}`)
           }
         } else {
-          console.log(`✗ Not checking move ${i}: currentOpening=${analysisState.currentOpening || 'null'}, length=${analysisState.currentOpening?.length || 0}`)
+          console.log(`✗ Not checking move ${i}: currentOpening=${currentOpeningRef.current || 'null'}, length=${currentOpeningRef.current?.length || 0}`)
         }
 
         // Check if the played move matches the best move
@@ -257,6 +252,9 @@ export function ReviewPage() {
 
         infos.push(infoAfterMove)
       }
+
+      // Update ref synchronously so it's available during classification
+      currentOpeningRef.current = detectedOpening
 
       // Final state update
       setAnalysisState((prev) => ({
