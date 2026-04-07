@@ -153,7 +153,8 @@ export function ReviewPage() {
       const detectedOpening = openingBook.getOpeningName(moveHistory) || null
 
       if (detectedOpening) {
-        // Opening detected for book move classification
+        // Opening detected - use ref for book move classification
+        currentOpeningRef.current = detectedOpening
       }
 
       // Now classify each move
