@@ -152,7 +152,7 @@ export function ReviewPage() {
       const infos: EngineInfo[] = []
 
       // Get move history for opening detection
-      const moveHistory = moves.map(m => m.uci)
+      const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
 
       for (let i = 0; i < moves.length; i++) {
         const move = moves[i]
@@ -178,9 +178,9 @@ export function ReviewPage() {
         if (analysisState.currentOpening && analysisState.currentOpening.length > i) {
           // Get the detected opening directly
           const opening = POPULAR_OPENINGS.find(o => o.shortName === analysisState.currentOpening)
-          if (opening && opening.moves[i] === move.uci) {
+          if (opening && opening.moves[i] === move.san) {
             classification = 'book'
-            console.log(`✓ Move ${i} classified as book: ${move.uci}`)
+            console.log(`✓ Move ${i} classified as book: ${move.san}`)
           }
         }
 
