@@ -152,35 +152,8 @@ export function ReviewPage() {
       const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
       const detectedOpening = openingBook.getOpeningName(moveHistory) || null
 
-      console.log('=== Opening Detection Debug ===')
-      console.log('Move history:', moveHistory)
-      console.log('First 3 moves (SAN):', moveHistory.slice(0, 3))
-      console.log('Moves from state:', moves.map(m => ({ san: m.san, uci: m.uci })))
-      console.log('Detected opening:', detectedOpening)
-
       if (detectedOpening) {
-        console.log('✓ Opening detected:', detectedOpening)
-        try {
-          // Get the actual opening object to check moves
-          const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
-          if (opening) {
-            console.log('Opening sequence:', opening.moves)
-          } else {
-            console.log('✗ Opening not found in POPULAR_OPENINGS:', detectedOpening)
-          }
-        } catch (error) {
-          console.error('Error getting opening:', error)
-        }
-      } else {
-        console.log('✗ No opening detected')
-      }
-
-      try {
-        console.log('Updating currentOpeningRef to:', detectedOpening)
-        currentOpeningRef.current = detectedOpening
-        console.log('currentOpeningRef.current after update:', currentOpeningRef.current)
-      } catch (error) {
-        console.error('Error updating ref:', error)
+        // Opening detected for book move classification
       }
 
       // Now classify each move
@@ -189,7 +162,6 @@ export function ReviewPage() {
 
       // Now classify each move
       for (let i = 0; i < moves.length; i++) {
-        console.log(`=== Classification loop: Processing move ${i} ===`)
         const move = moves[i]
         const infoBeforeMove = engineResults[i]  // position before this move
         const infoAfterMove = engineResults[i + 1]  // position after this move
@@ -212,25 +184,11 @@ export function ReviewPage() {
         // Check if the move is in the opening book
         // Use ref instead of state since state updates are async
         if (currentOpeningRef.current && currentOpeningRef.current.length > i) {
-          console.log(`Checking move ${i}: ${move.san}, currentOpening: ${currentOpeningRef.current}, length: ${currentOpeningRef.current.length}`)
-
           // Get the detected opening directly
           const opening = POPULAR_OPENINGS.find(o => o.shortName === currentOpeningRef.current)
-          if (opening) {
-            console.log(`Opening moves:`, opening.moves)
-            console.log(`Current move index ${i}:`, opening.moves[i], `vs move.san:`, move.san)
-
-            if (opening.moves[i] === move.san) {
-              classification = 'book'
-              console.log(`✓ Move ${i} classified as book: ${move.san}`)
-            } else {
-              console.log(`✗ Move ${i} NOT a book move:`, opening.moves[i], `!=`, move.san)
-            }
-          } else {
-            console.log(`✗ Opening not found: ${currentOpeningRef.current}`)
+          if (opening && opening.moves[i] === move.san) {
+            classification = 'book'
           }
-        } else {
-          console.log(`✗ Not checking move ${i}: currentOpening=${currentOpeningRef.current || 'null'}, length=${currentOpeningRef.current?.length || 0}`)
         }
 
         // Check if the played move matches the best move
