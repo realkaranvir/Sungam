@@ -202,12 +202,25 @@ export function ReviewPage() {
         // Check if the move is in the opening book
         // This works because we set currentOpening BEFORE the loop
         if (analysisState.currentOpening && analysisState.currentOpening.length > i) {
+          console.log(`Checking move ${i}: ${move.san}, currentOpening: ${analysisState.currentOpening}, length: ${analysisState.currentOpening.length}`)
+
           // Get the detected opening directly
           const opening = POPULAR_OPENINGS.find(o => o.shortName === analysisState.currentOpening)
-          if (opening && opening.moves[i] === move.san) {
-            classification = 'book'
-            console.log(`✓ Move ${i} classified as book: ${move.san}`)
+          if (opening) {
+            console.log(`Opening moves:`, opening.moves)
+            console.log(`Current move index ${i}:`, opening.moves[i], `vs move.san:`, move.san)
+
+            if (opening.moves[i] === move.san) {
+              classification = 'book'
+              console.log(`✓ Move ${i} classified as book: ${move.san}`)
+            } else {
+              console.log(`✗ Move ${i} NOT a book move:`, opening.moves[i], `!=`, move.san)
+            }
+          } else {
+            console.log(`✗ Opening not found: ${analysisState.currentOpening}`)
           }
+        } else {
+          console.log(`✗ Not checking move ${i}: currentOpening=${analysisState.currentOpening || 'null'}, length=${analysisState.currentOpening?.length || 0}`)
         }
 
         // Check if the played move matches the best move
