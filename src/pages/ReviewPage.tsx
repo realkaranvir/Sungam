@@ -175,15 +175,12 @@ export function ReviewPage() {
         )
 
         // Check if the move is in the opening book
-        if (analysisState.currentOpening) {
-          const openingMoves = openingBook.getMoves(moves.slice(0, i + 1).map(m => m.uci))
-          if (openingMoves.length > 0) {
-            const opening = openingMoves[0]
-            // Mark all moves in the opening sequence as book moves
-            if (i < opening.moves.length && opening.moves[i] === move.uci) {
-              classification = 'book'
-              console.log(`✓ Move ${i} classified as book: ${move.uci}`)
-            }
+        if (analysisState.currentOpening && analysisState.currentOpening.length > i) {
+          // Get the detected opening directly
+          const opening = POPULAR_OPENINGS.find(o => o.shortName === analysisState.currentOpening)
+          if (opening && opening.moves[i] === move.uci) {
+            classification = 'book'
+            console.log(`✓ Move ${i} classified as book: ${move.uci}`)
           }
         }
 
@@ -232,19 +229,13 @@ export function ReviewPage() {
 
       if (detectedOpening) {
         console.log('✓ Opening detected:', detectedOpening)
+        // Get the actual opening object to check moves
+        const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
+        if (opening) {
+          console.log('Opening sequence:', opening.moves)
+        }
       } else {
         console.log('✗ No opening detected')
-        // Check if any of the individual moves match
-        for (const move of moves) {
-          // Convert SAN to UCI for checking
-          const uci = move.uci
-          for (const opening of POPULAR_OPENINGS) {
-            if (opening.moves.includes(uci)) {
-              console.log(`  Move ${move.san} (${uci}) matches opening: ${opening.shortName}`)
-              break
-            }
-          }
-        }
       }
 
       setAnalysisState((prev) => ({
