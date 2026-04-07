@@ -1,0 +1,34 @@
+name: Preview Link in Description
+on:
+  deployment_status:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  update-description:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Get PR number by matching deployment SHA with branch
+      - name: Get PR Number
+        id: get_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR=$(gh pr list --state open --json number,headRefOid --jq ".[] | select(.headRefOid == \"${{ github.event.deployment.sha }}\") | .number" | head -n 1)
+          echo "nr=$PR" >> $GITHUB_OUTPUT
+
+      # Update PR description with preview link
+      - name: Update PR Description
+        if: steps.get_pr.outputs.nr != ''
+        uses: necolas/update-pull-request-body@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.get_pr.outputs.nr }}
+          body: |
+            **🚀 Render QA Deployment Ready**
+            View it here: ${{ github.event.deployment_status.environment_url }}
+
+            ---
+            ${{ github.event.pull_request.body }}
