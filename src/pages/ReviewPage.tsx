@@ -175,6 +175,7 @@ export function ReviewPage() {
 
       // Now classify each move
       for (let i = 0; i < moves.length; i++) {
+        console.log(`=== Classification loop: Processing move ${i} ===`)
         const move = moves[i]
         const infoBeforeMove = engineResults[i]  // position before this move
         const infoAfterMove = engineResults[i + 1]  // position after this move
