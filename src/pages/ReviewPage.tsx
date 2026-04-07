@@ -160,13 +160,27 @@ export function ReviewPage() {
 
       if (detectedOpening) {
         console.log('✓ Opening detected:', detectedOpening)
-        // Get the actual opening object to check moves
-        const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
-        if (opening) {
-          console.log('Opening sequence:', opening.moves)
+        try {
+          // Get the actual opening object to check moves
+          const opening = POPULAR_OPENINGS.find(o => o.shortName === detectedOpening)
+          if (opening) {
+            console.log('Opening sequence:', opening.moves)
+          } else {
+            console.log('✗ Opening not found in POPULAR_OPENINGS:', detectedOpening)
+          }
+        } catch (error) {
+          console.error('Error getting opening:', error)
         }
       } else {
         console.log('✗ No opening detected')
+      }
+
+      try {
+        console.log('Updating currentOpeningRef to:', detectedOpening)
+        currentOpeningRef.current = detectedOpening
+        console.log('currentOpeningRef.current after update:', currentOpeningRef.current)
+      } catch (error) {
+        console.error('Error updating ref:', error)
       }
 
       // Now classify each move
