@@ -19,6 +19,7 @@ import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from
 import { CLASSIFICATION_META as META } from '@/types'
 import { formatScore } from '@/lib/moveClassifier'
 import { openingBook } from '@/lib/openingBook'
+import { POPULAR_OPENINGS } from '@/lib/openings'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
@@ -235,9 +236,13 @@ export function ReviewPage() {
         console.log('✗ No opening detected')
         // Check if any of the individual moves match
         for (const move of moves) {
-          const openings = openingBook.getMoves([move.san])
-          if (openings.length > 0) {
-            console.log(`  Move ${move.san} matches opening:`, openings[0].shortName)
+          // Convert SAN to UCI for checking
+          const uci = move.uci
+          for (const opening of POPULAR_OPENINGS) {
+            if (opening.moves.includes(uci)) {
+              console.log(`  Move ${move.san} (${uci}) matches opening: ${opening.shortName}`)
+              break
+            }
           }
         }
       }
