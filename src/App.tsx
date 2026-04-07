@@ -5,12 +5,8 @@ import { SearchPage } from '@/pages/SearchPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ReviewPage } from '@/pages/ReviewPage'
 import { PuzzlePage } from '@/pages/PuzzlePage'
-import { useOpeningBook } from '@/hooks/useOpeningBook'
 
 export default function App() {
-  // Load opening book on app startup
-  useOpeningBook()
-
   return (
     <div className="dark">
       <TooltipProvider>

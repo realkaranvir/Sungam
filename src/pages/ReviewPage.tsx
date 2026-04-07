@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
 import { formatScore } from '@/lib/moveClassifier'
-import { openingBook } from '@/lib/openingBook'
+import { getOpeningName } from '@/lib/openingBook'
 import { POPULAR_OPENINGS } from '@/lib/openings'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
@@ -150,7 +150,7 @@ export function ReviewPage() {
 
       // Detect the opening BEFORE classifying moves
       const moveHistory = moves.map(m => m.san) // Use SAN format, not UCI
-      const detectedOpening = openingBook.getOpeningName(moveHistory) || null
+      const detectedOpening = getOpeningName(moveHistory) || null
 
       if (detectedOpening) {
         // Opening detected - use ref for book move classification
@@ -206,7 +206,7 @@ export function ReviewPage() {
 
         // Get opening name if move is in book
         const openingName = (classification === 'book')
-          ? openingBook.getOpeningName(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
+          ? getOpeningName(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
           : undefined
 
         analyzed.push({
