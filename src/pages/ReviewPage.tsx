@@ -224,12 +224,22 @@ export function ReviewPage() {
       // Detect the opening if all moves are part of it
       const detectedOpening = openingBook.getOpeningName(moveHistory) || null
 
+      console.log('=== Opening Detection Debug ===')
+      console.log('Move history (UCI):', moveHistory)
+      console.log('Moves from state:', moves.map(m => ({ san: m.san, uci: m.uci })))
+      console.log('Detected opening:', detectedOpening)
+
       if (detectedOpening) {
         console.log('✓ Opening detected:', detectedOpening)
-        console.log('  Move history:', moveHistory)
       } else {
         console.log('✗ No opening detected')
-        console.log('  Move history:', moveHistory)
+        // Check if any of the individual moves match
+        for (const move of moves) {
+          const openings = openingBook.getMoves([move.san])
+          if (openings.length > 0) {
+            console.log(`  Move ${move.san} matches opening:`, openings[0].shortName)
+          }
+        }
       }
 
       setAnalysisState((prev) => ({
