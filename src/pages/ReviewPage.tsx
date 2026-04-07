@@ -278,6 +278,7 @@ export function ReviewPage() {
         engineInfos: infos,
         isAnalyzing: false,
         progress: 100,
+        currentOpening: currentOpeningRef.current,
       }))
     }
 
