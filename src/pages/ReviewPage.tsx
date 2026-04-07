@@ -150,6 +150,9 @@ export function ReviewPage() {
       const analyzed: AnalyzedMove[] = []
       const infos: EngineInfo[] = []
 
+      // Get move history for opening detection
+      const moveHistory = moves.map(m => m.uci)
+
       for (let i = 0; i < moves.length; i++) {
         const move = moves[i]
         const infoBeforeMove = engineResults[i]  // position before this move
@@ -178,6 +181,7 @@ export function ReviewPage() {
             // Mark all moves in the opening sequence as book moves
             if (i < opening.moves.length && opening.moves[i] === move.uci) {
               classification = 'book'
+              console.log(`✓ Move ${i} classified as book: ${move.uci}`)
             }
           }
         }
@@ -218,7 +222,15 @@ export function ReviewPage() {
       }
 
       // Detect the opening if all moves are part of it
-      const detectedOpening = openingBook.getOpeningName(moves.map(m => m.uci)) || null
+      const detectedOpening = openingBook.getOpeningName(moveHistory) || null
+
+      if (detectedOpening) {
+        console.log('✓ Opening detected:', detectedOpening)
+        console.log('  Move history:', moveHistory)
+      } else {
+        console.log('✗ No opening detected')
+        console.log('  Move history:', moveHistory)
+      }
 
       setAnalysisState((prev) => ({
         ...prev,
