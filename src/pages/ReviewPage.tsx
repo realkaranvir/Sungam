@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import type { ProcessedGame, AnalyzedMove, EngineInfo, MoveClassification } from '@/types'
 import { CLASSIFICATION_META as META } from '@/types'
 import { formatScore } from '@/lib/moveClassifier'
-import { detectOpening } from '@/lib/openings'
+import { openingBook } from '@/lib/openingBook'
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react'
 
 // Convert UCI move to SAN in a position
@@ -157,7 +157,7 @@ export function ReviewPage() {
         const cpBefore = move.color === 'w' ? infoBeforeMove.score : -infoBeforeMove.score
         const cpAfter  = move.color === 'w' ? -infoAfterMove.score : infoAfterMove.score
 
-        const classification = classifyMove(
+        let classification = classifyMove(
           cpBefore,
           cpAfter,
           move.color,
@@ -166,6 +166,16 @@ export function ReviewPage() {
           userColor,
           move.fenBefore,
         )
+
+        // Check if the move is in the opening book
+        const openingMoves = openingBook.getMoves(moves.slice(0, i + 1).map(m => m.uci))
+        if (openingMoves.length > 0) {
+          // Check if this move is in the opening's move sequence
+          const opening = openingMoves[0]
+          if (opening.moves[i] === move.uci) {
+            classification = 'book'
+          }
+        }
 
         // Check if the played move matches the best move
         // The played move in UCI: we get it from fenBefore
@@ -181,7 +191,7 @@ export function ReviewPage() {
 
         // Get opening name if move is in book
         const openingName = (classification === 'book')
-          ? detectOpening(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
+          ? openingBook.getOpeningName(moves.slice(0, i + 1).map(m => m.uci)) ?? undefined
           : undefined
 
         analyzed.push({
