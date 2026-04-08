@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import { useRef } from 'react'
+import { useMemo, useState } from 'react'
 
 interface LoadingScreenProps {
   message?: string
@@ -25,20 +24,23 @@ const humorousMessages = [
 ]
 
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...', progress = 0 }: LoadingScreenProps) {
-  const previousProgressRef = useRef(0)
+  const [selectedQuotes, setSelectedQuotes] = useState<string[]>([])
 
-  const randomMessage = useMemo(() => {
-    // Only change message every 5% progress (about every 3-4 updates)
-    const progressIncrement = 5
-    const currentIndex = Math.floor(progress / progressIncrement) % humorousMessages.length
-
-    // Only update if progress has increased by at least progressIncrement
-    if (progress - previousProgressRef.current >= progressIncrement) {
-      previousProgressRef.current = progress
+  useMemo(() => {
+    // Randomly select 4 quotes on first render
+    if (selectedQuotes.length === 0) {
+      const shuffled = [...humorousMessages].sort(() => Math.random() - 0.5)
+      setSelectedQuotes(shuffled.slice(0, 4))
     }
+  }, [selectedQuotes.length])
 
-    return humorousMessages[currentIndex]
+  const currentIndex = useMemo(() => {
+    // Calculate which of the 4 quotes to show based on progress
+    const quoteIndex = Math.floor((progress / 100) * 4) % 4
+    return quoteIndex
   }, [progress])
+
+  const currentQuote = selectedQuotes[currentIndex] || humorousMessages[0]
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950">
@@ -47,7 +49,7 @@ export default function LoadingScreen({ message = 'Analyzing with Stockfish...',
         <p className="text-lg font-medium text-zinc-300">{message}</p>
 
         <p className="text-sm text-zinc-500">
-          {randomMessage}
+          {currentQuote}
         </p>
 
         {/* Progress indicator */}
