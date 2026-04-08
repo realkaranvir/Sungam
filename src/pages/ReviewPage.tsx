@@ -327,7 +327,7 @@ export function ReviewPage() {
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
       {/* Full-screen loading screen */}
       {isAnalyzing && (
-        <LoadingScreen message="Analyzing with Stockfish..." />
+        <LoadingScreen message="Analyzing with Stockfish..." progress={analysisState.progress} />
       )}
 
       <AppHeader
