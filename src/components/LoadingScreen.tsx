@@ -5,7 +5,32 @@ interface LoadingScreenProps {
   progress?: number
 }
 
+const funnyMessages = [
+  "Analyzing like a grandmaster",
+  "Finding the best move...",
+  "Stockfish is thinking...",
+  "Evaluating positions...",
+  "Calculating optimal lines...",
+  "Looking for blunders...",
+  "Preparing the analysis...",
+  "Stockfish is grinding...",
+  "Analyzing with the grandmaster engine...",
+  "Deep thinking...",
+  "Stockfish is pondering...",
+  "Finding the winning line...",
+  "Evaluating the position...",
+  "Stockfish is on the job...",
+  "Analyzing the game...",
+  "Deep dive mode activated...",
+  "Stockfish is making coffee... ☕",
+  "Stockfish is meditating...",
+  "Gathering chess wisdom...",
+  "Analyzing with the best...",
+]
+
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...', progress = 0 }: LoadingScreenProps) {
+  const randomMessage = funnyMessages[Math.floor(Math.random() * funnyMessages.length)]
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950">
       {/* Loading Animation */}
@@ -13,7 +38,7 @@ export default function LoadingScreen({ message = 'Analyzing with Stockfish...',
         <p className="text-lg font-medium text-zinc-300">{message}</p>
 
         <p className="text-sm text-zinc-500">
-          Analyzing moves...
+          {randomMessage}
         </p>
 
         {/* Progress indicator */}
