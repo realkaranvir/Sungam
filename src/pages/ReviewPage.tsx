@@ -323,19 +323,37 @@ export function ReviewPage() {
     )
   }
 
-  // Calculate accuracy percentages based on best move accuracy
+  // Calculate accuracy using weighted sigmoid function (like chess.com)
   const calculateAccuracy = useCallback((color: 'w' | 'b'): number => {
     const moves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === color)
     if (moves.length === 0) return 50
 
-    let correctMoves = 0
+    let totalScore = 0
+
     moves.forEach((move) => {
-      if (move.bestMoveSan === move.san) {
-        correctMoves++
-      }
+      const bestMoveScore = move.cpBefore // Best move score
+      const playedMoveScore = move.cpAfter // Score after played move
+      const cpLoss = Math.abs(bestMoveScore - playedMoveScore) // Centipawn loss
+
+      // Sigmoid function to map cp loss to 0-1 accuracy
+      // k = 30 is the steepness parameter
+      const sigmoid = 1 / (1 + Math.exp(-cpLoss / 30))
+
+      // Weight by position strength (bestMoveScore)
+      // Positions closer to 0 (critical) have higher weight
+      const positionScore = Math.abs(bestMoveScore)
+      const weight = 1 / (positionScore + 1) // Higher weight for critical positions
+
+      totalScore += sigmoid * weight
     })
 
-    return (correctMoves / moves.length) * 100
+    const averageScore = totalScore / moves.length
+
+    // Map to human-friendly scale (0-100)
+    // Using a logarithmic scale to make it more human-friendly
+    const accuracy = Math.min(100, Math.max(0, (Math.log2(averageScore + 1) / Math.log2(2)) * 100))
+
+    return accuracy
   }, [analyzedMoves])
 
   const whiteAccuracy = useMemo(() => calculateAccuracy('w'), [calculateAccuracy])
