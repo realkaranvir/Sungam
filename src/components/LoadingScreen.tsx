@@ -1,35 +1,48 @@
-import { } from 'react'
+import { useMemo } from 'react'
 
 interface LoadingScreenProps {
   message?: string
   progress?: number
 }
 
-const funnyMessages = [
-  "Analyzing like a grandmaster",
-  "Finding the best move...",
-  "Stockfish is thinking...",
-  "Evaluating positions...",
-  "Calculating optimal lines...",
-  "Looking for blunders...",
-  "Preparing the analysis...",
-  "Stockfish is grinding...",
-  "Analyzing with the grandmaster engine...",
-  "Deep thinking...",
-  "Stockfish is pondering...",
-  "Finding the winning line...",
-  "Evaluating the position...",
-  "Stockfish is on the job...",
-  "Analyzing the game...",
-  "Deep dive mode activated...",
-  "Stockfish is making coffee... ☕",
-  "Stockfish is meditating...",
-  "Gathering chess wisdom...",
-  "Analyzing with the best...",
+const humorousMessages = [
+  "Thinking about the pawns...",
+  "Consulting the move database",
+  "Running the position through the computer",
+  "Optimizing for checkmate",
+  "Calculating the best move",
+  "The engine is grinding",
+  "Deep analysis mode activated",
+  "Processing the board...",
+  "Optimizing for maximum efficiency",
+  "I'm thinking very hard",
+  "Consulting with Stockfish",
+  "The engine is pondering",
+  "Running the best move algorithm",
+  "Optimizing for efficiency",
+  "I'm thinking about chess",
+  "The engine is doing the thinking",
+  "Running the position through the quantum processor",
+  "Calculating the best line",
+  "Simulating the endgame",
+  "Optimizing my bishop pair",
+  "Consulting the positional database",
+  "Running the tactical lines",
+  "The engine is doing its best",
+  "Calculating the most efficient win",
+  "Optimizing for checkmate in 3",
+  "Thinking about the center control",
+  "Running the position through the neural network",
+  "The engine is thinking silently",
+  "Optimizing for material advantage",
+  "Calculating the best move...",
+  "I'm thinking very hard about this...",
 ]
 
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...', progress = 0 }: LoadingScreenProps) {
-  const randomMessage = funnyMessages[Math.floor(Math.random() * funnyMessages.length)]
+  const randomMessage = useMemo(() => {
+    return humorousMessages[Math.floor(Math.random() * humorousMessages.length)]
+  }, [progress])
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950">
