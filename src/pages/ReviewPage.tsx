@@ -12,6 +12,7 @@ import { EvaluationBar } from '@/components/EvaluationBar'
 import { MoveList } from '@/components/MoveList'
 import { MoveClassificationBadge } from '@/components/MoveClassificationBadge'
 import { EvaluationGraph } from '@/components/EvaluationGraph'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { AppHeader } from '@/components/AppHeader'
 import { Button } from '@/components/ui/button'
 
@@ -79,7 +80,6 @@ export function ReviewPage() {
   const analyzedMoves = analysisState.analyzedMoves
   const engineInfos = analysisState.engineInfos
   const isAnalyzing = analysisState.isAnalyzing
-  const analysisProgress = analysisState.progress
   const analysisAbortRef = useRef(false)
   const currentOpeningRef = useRef<string | null>(null)
 
@@ -325,12 +325,15 @@ export function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+      {/* Full-screen loading screen */}
+      {isAnalyzing && (
+        <LoadingScreen message="Analyzing with Stockfish..." />
+      )}
+
       <AppHeader
         onBack={() => navigate(-1)}
         title={`vs ${game.opponent} (${game.opponentRating})`}
         subtitle={`${game.userColor === 'white' ? '♔' : '♚'} You · ${game.result} · ${game.date}`}
-        progress={isAnalyzing ? analysisProgress : undefined}
-        progressLabel="Analyzing with Stockfish..."
         right={
           <div className="hidden sm:flex items-center gap-1.5">
             {(Object.keys(META) as MoveClassification[]).map((key) => {
