@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
@@ -322,20 +322,6 @@ export function ReviewPage() {
       </div>
     )
   }
-
-  // Calculate accuracy percentages
-  const totalScore = useMemo(() => {
-    return analyzedMoves
-      .filter((m): m is NonNullable<typeof m> => m !== null)
-      .reduce((sum, m) => sum + (m.cpBefore ?? 0), 0)
-  }, [analyzedMoves])
-
-  const maxPossibleScore = 2000 // ±1000 cp (10 pawns)
-  const whiteAccuracy = useMemo(() => {
-    return ((totalScore + maxPossibleScore) / maxPossibleScore) * 100
-  }, [totalScore])
-
-  const blackAccuracy = 100 - whiteAccuracy
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
