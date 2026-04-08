@@ -323,19 +323,23 @@ export function ReviewPage() {
     )
   }
 
-  // Calculate accuracy percentages
-  const totalScore = useMemo(() => {
-    return analyzedMoves
-      .filter((m): m is NonNullable<typeof m> => m !== null)
-      .reduce((sum, m) => sum + (m.cpBefore ?? 0), 0)
+  // Calculate accuracy percentages based on best move accuracy
+  const calculateAccuracy = useCallback((color: 'w' | 'b'): number => {
+    const moves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === color)
+    if (moves.length === 0) return 50
+
+    let correctMoves = 0
+    moves.forEach((move) => {
+      if (move.bestMoveSan === move.san) {
+        correctMoves++
+      }
+    })
+
+    return (correctMoves / moves.length) * 100
   }, [analyzedMoves])
 
-  const maxPossibleScore = 2000 // ±1000 cp (10 pawns)
-  const whiteAccuracy = useMemo(() => {
-    return ((totalScore + maxPossibleScore) / maxPossibleScore) * 100
-  }, [totalScore])
-
-  const blackAccuracy = 100 - whiteAccuracy
+  const whiteAccuracy = useMemo(() => calculateAccuracy('w'), [calculateAccuracy])
+  const blackAccuracy = useMemo(() => calculateAccuracy('b'), [calculateAccuracy])
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
