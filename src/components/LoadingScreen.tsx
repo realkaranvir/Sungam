@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
 import { Loader2 } from 'lucide-react'
@@ -8,8 +8,8 @@ interface LoadingScreenProps {
 }
 
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...' }: LoadingScreenProps) {
-  const [loadingBoard, setLoadingBoard] = React.useState<boolean>(true)
-  const [currentPly, setCurrentPly] = React.useState<number>(0)
+  const [loadingBoard, setLoadingBoard] = useState<boolean>(true)
+  const [currentPly, setCurrentPly] = useState<number>(0)
 
   // Animate a random piece movement
   useEffect(() => {
