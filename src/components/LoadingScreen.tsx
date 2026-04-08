@@ -7,7 +7,7 @@ interface LoadingScreenProps {
   message?: string
 }
 
-export function LoadingScreen({ message = 'Analyzing with Stockfish...' }: LoadingScreenProps) {
+export default function LoadingScreen({ message = 'Analyzing with Stockfish...' }: LoadingScreenProps) {
   const [loadingBoard, setLoadingBoard] = React.useState<boolean>(true)
   const [currentPly, setCurrentPly] = React.useState<number>(0)
 
