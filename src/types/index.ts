@@ -49,6 +49,10 @@ export interface ChessComRawGame {
   time_control: string
   end_time: number
   rated: boolean
+  accuracies?: {
+    white: number
+    black: number
+  }
   white: {
     username: string
     rating: number
@@ -71,6 +75,10 @@ export interface ProcessedGame {
   date: string
   pgn: string
   userRating: number
+  accuracies?: {
+    white: number
+    black: number
+  }
 }
 
 export interface ParsedMove {

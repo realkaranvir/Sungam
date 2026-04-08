@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Chessboard } from 'react-chessboard'
 import { Chess } from 'chess.js'
@@ -323,41 +323,9 @@ export function ReviewPage() {
     )
   }
 
-  // Calculate accuracy using weighted sigmoid function (like chess.com)
-  const calculateAccuracy = useCallback((color: 'w' | 'b'): number => {
-    const moves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === color)
-    if (moves.length === 0) return 50
-
-    let totalScore = 0
-
-    moves.forEach((move) => {
-      const bestMoveScore = move.cpBefore // Best move score
-      const playedMoveScore = move.cpAfter // Score after played move
-      const cpLoss = Math.abs(bestMoveScore - playedMoveScore) // Centipawn loss
-
-      // Sigmoid function to map cp loss to 0-1 accuracy
-      // k = 30 is the steepness parameter
-      const sigmoid = 1 / (1 + Math.exp(-cpLoss / 30))
-
-      // Weight by position strength (bestMoveScore)
-      // Positions closer to 0 (critical) have higher weight
-      const positionScore = Math.abs(bestMoveScore)
-      const weight = 1 / (positionScore + 1) // Higher weight for critical positions
-
-      totalScore += sigmoid * weight
-    })
-
-    const averageScore = totalScore / moves.length
-
-    // Map to human-friendly scale (0-100)
-    // Using a logarithmic scale to make it more human-friendly
-    const accuracy = Math.min(100, Math.max(0, (Math.log2(averageScore + 1) / Math.log2(2)) * 100))
-
-    return accuracy
-  }, [analyzedMoves])
-
-  const whiteAccuracy = useMemo(() => calculateAccuracy('w'), [calculateAccuracy])
-  const blackAccuracy = useMemo(() => calculateAccuracy('b'), [calculateAccuracy])
+  // Get accuracy from chess.com API if available
+  const whiteAccuracy = game?.accuracies?.white ?? 0
+  const blackAccuracy = game?.accuracies?.black ?? 0
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
