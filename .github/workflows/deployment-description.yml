@@ -1,0 +1,69 @@
+name: Preview Link in Description
+on:
+  deployment_status:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  update-description:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Get PR number by matching deployment SHA with branch
+      - name: Get PR Number
+        id: get_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: context.ref
+            });
+
+            const pr = prs.data.find(p => p.head.sha === '${{ github.event.deployment.sha }}');
+            if (pr) {
+              core.setOutput('number', pr.number);
+            }
+
+      # Update PR description with preview link
+      - name: Update PR Description
+        if: steps.get_pr.outputs.number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = '${{ steps.get_pr.outputs.number }}';
+            const previewUrl = '${{ github.event.deployment_status.environment_url }}';
+
+            // Get current PR description
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Check if preview link already exists in the description
+            const hasPreviewLink = pr.body.includes(previewUrl) ||
+                                   pr.body.includes('Render QA Deployment Ready');
+
+            // Add preview link to the top of the description (only if not already present)
+            const newBody = hasPreviewLink
+              ? pr.body
+              : `**🚀 Render QA Deployment Ready**
+              View it here: ${previewUrl}
+
+              ---
+
+              ${pr.body}`;
+
+            // Update the PR description only if it changed
+            if (newBody !== pr.body) {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                body: newBody
+              });
+            }

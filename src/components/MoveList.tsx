@@ -87,10 +87,17 @@ export function MoveList({
                 >
                   <span>{move.san}</span>
                   {analyzed && analyzed.classification !== 'good' && (
-                    <MoveClassificationBadge
-                      classification={analyzed.classification}
-                      className="ml-auto"
-                    />
+                    <div className="flex items-center gap-1 ml-auto">
+                      <MoveClassificationBadge
+                        classification={analyzed.classification}
+                        className="ml-auto"
+                      />
+                      {analyzed.classification === 'book' && analyzed.openingName && (
+                        <span className="text-xs text-zinc-400 ml-1">
+                          ({analyzed.openingName})
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               )

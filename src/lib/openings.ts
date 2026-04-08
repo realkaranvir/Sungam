@@ -1,0 +1,300 @@
+/**
+ * Opening Database
+ *
+ * Contains popular chess openings with their standard move sequences.
+ * Used to identify what opening a game is following.
+ */
+
+export interface Opening {
+  name: string
+  shortName: string
+  description: string
+  moves: string[] // Move sequence in SAN format (Standard Algebraic Notation)
+}
+
+/**
+ * Popular openings database
+ */
+export const POPULAR_OPENINGS: Opening[] = [
+  // Grand Prix Attack
+  {
+    name: "Grand Prix Attack",
+    shortName: "Grand Prix",
+    description: "1. e4 c5 2. Nc3 d6 3. g4",
+    moves: ["e4", "c5", "Nc3", "d6", "g4"]
+  },
+
+  // Vienna Game
+  {
+    name: "Vienna Game",
+    shortName: "Vienna",
+    description: "1. e4 e5 2. b1c3",
+    moves: ["e4", "e5", "Nc3"]
+  },
+
+  // Ruy Lopez (Spanish)
+  {
+    name: "Ruy Lopez (Spanish)",
+    shortName: "Ruy Lopez",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Bb5",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bb5"]
+  },
+
+  // Italian Game
+  {
+    name: "Italian Game",
+    shortName: "Italian",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Bc4",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bc4"]
+  },
+
+  // Scotch Game
+  {
+    name: "Scotch Game",
+    shortName: "Scotch",
+    description: "1. e4 e5 2. Nf3 Nc6 3. d4",
+    moves: ["e4", "e5", "Nf3", "Nc6", "d4"]
+  },
+
+  // Four Knights Game
+  {
+    name: "Four Knights Game",
+    shortName: "Four Knights",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Nc3", "Nf6"]
+  },
+
+  // Petroff Defense
+  {
+    name: "Petroff Defense",
+    shortName: "Petroff",
+    description: "1. e4 e5 2. Nf3 Nf6",
+    moves: ["e4", "e5", "Nf3", "Nf6"]
+  },
+
+  // King's Gambit
+  {
+    name: "King's Gambit",
+    shortName: "King's Gambit",
+    description: "1. e4 e5 2. f4",
+    moves: ["e4", "e5", "f4"]
+  },
+
+  // Bishop's Opening
+  {
+    name: "Bishop's Opening",
+    shortName: "Bishop's Opening",
+    description: "1. e4 e5 2. Bc4",
+    moves: ["e4", "e5", "Bc4"]
+  },
+
+  // Queen's Gambit
+  {
+    name: "Queen's Gambit",
+    shortName: "Queen's Gambit",
+    description: "1. d4 d5 2. c4",
+    moves: ["d4", "d5", "c4"]
+  },
+
+  // Queen's Pawn Game
+  {
+    name: "Queen's Pawn Game",
+    shortName: "Queen's Pawn",
+    description: "1. d4 d5 2. Nf3",
+    moves: ["d4", "d5", "Nf3"]
+  },
+
+  // Catalan Opening
+  {
+    name: "Catalan Opening",
+    shortName: "Catalan",
+    description: "1. d4 d5 2. c4 e6 3. g3",
+    moves: ["d4", "d5", "c4", "e6", "g3"]
+  },
+
+  // Nimzo-Indian Defense
+  {
+    name: "Nimzo-Indian Defense",
+    shortName: "Nimzo-Indian",
+    description: "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4",
+    moves: ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4"]
+  },
+
+  // King's Indian Defense
+  {
+    name: "King's Indian Defense",
+    shortName: "King's Indian",
+    description: "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7",
+    moves: ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7"]
+  },
+
+  // French Defense
+  {
+    name: "French Defense",
+    shortName: "French",
+    description: "1. e4 e6 2. d4 d5",
+    moves: ["e4", "e6", "d4", "d5"]
+  },
+
+  // Caro-Kann Defense
+  {
+    name: "Caro-Kann Defense",
+    shortName: "Caro-Kann",
+    description: "1. e4 c6 2. d4 d5",
+    moves: ["e4", "c6", "d4", "d5"]
+  },
+
+  // Sicilian Defense
+  {
+    name: "Sicilian Defense",
+    shortName: "Sicilian",
+    description: "1. e4 c5",
+    moves: ["e4", "c5"]
+  },
+
+  // Alekhine's Defense
+  {
+    name: "Alekhine's Defense",
+    shortName: "Alekhine",
+    description: "1. e4 Nf6",
+    moves: ["e4", "Nf6"]
+  },
+
+  // Scandinavian Defense
+  {
+    name: "Scandinavian Defense",
+    shortName: "Scandinavian",
+    description: "1. e4 d5 2. exd5",
+    moves: ["e4", "d5", "exd5"]
+  },
+
+  // Philidor Defense
+  {
+    name: "Philidor Defense",
+    shortName: "Philidor",
+    description: "1. e4 e5 2. Nf3 d6",
+    moves: ["e4", "e5", "Nf3", "d6"]
+  },
+
+  // Pirc Defense
+  {
+    name: "Pirc Defense",
+    shortName: "Pirc",
+    description: "1. e4 d6 2. d4 Nf6 3. Nc3 g6",
+    moves: ["e4", "d6", "d4", "Nf6", "Nc3", "g6"]
+  },
+
+  // Modern Defense
+  {
+    name: "Modern Defense",
+    shortName: "Modern",
+    description: "1. e4 g6 2. d4 Bg7",
+    moves: ["e4", "g6", "d4", "Bg7"]
+  },
+
+  // London System
+  {
+    name: "London System",
+    shortName: "London",
+    description: "1. d4 d5 2. Bf4",
+    moves: ["d4", "d5", "Bf4"]
+  },
+
+  // Bird's Opening
+  {
+    name: "Bird's Opening",
+    shortName: "Bird",
+    description: "1. f4",
+    moves: ["f4"]
+  },
+
+  // Portuguese Opening
+  {
+    name: "Portuguese Opening",
+    shortName: "Portuguese",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "b5", "a4"]
+  },
+
+  // Olaf's Opening
+  {
+    name: "Olaf's Opening",
+    shortName: "Olaf's",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "c3"]
+  },
+
+  // Van't Kruijs Opening
+  {
+    name: "Van't Kruijs Opening",
+    shortName: "Van't Kruijs",
+    description: "1. e4 e5 2. Bc4 Bc5 3. c3",
+    moves: ["e4", "e5", "Bc4", "Bc5", "c3"]
+  },
+
+  // Schuyler Opening
+  {
+    name: "Schuyler Opening",
+    shortName: "Schuyler",
+    description: "1. e4 e5 2. Bc4 Bc5 3. Nf3",
+    moves: ["e4", "e5", "Bc4", "Bc5", "Nf3"]
+  },
+
+  // Evans Gambit
+  {
+    name: "Evans Gambit",
+    shortName: "Evans",
+    description: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4",
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "b5", "a4"]
+  },
+
+  // Philidor Defense
+  {
+    name: "Philidor Defense",
+    shortName: "Philidor",
+    description: "1. e4 e5 2. Nf3 d6",
+    moves: ["e4", "e5", "Nf3", "d6"]
+  }
+]
+
+/**
+ * Find which opening a game is following
+ *
+ * @param moves Array of played moves in SAN format
+ * @returns The opening name if a match is found, null otherwise
+ */
+export function detectOpening(moves: string[]): string | null {
+  if (moves.length === 0) return null
+
+  for (const opening of POPULAR_OPENINGS) {
+    // Check if the played moves match the opening's move sequence (only first N moves)
+    let match = true
+    for (let i = 0; i < opening.moves.length; i++) {
+      if (moves[i] !== opening.moves[i]) {
+        match = false
+        break
+      }
+    }
+
+    if (match) {
+      return opening.shortName
+    }
+  }
+
+  return null
+}
+
+/**
+ * Get opening info by move sequence
+ */
+export function getOpeningByMoves(moves: string[]): Opening | null {
+  return POPULAR_OPENINGS.find(opening => {
+    if (opening.moves.length > moves.length) return false
+
+    for (let i = 0; i < moves.length; i++) {
+      if (moves[i] !== opening.moves[i]) return false
+    }
+
+    return true
+  }) || null
+}
