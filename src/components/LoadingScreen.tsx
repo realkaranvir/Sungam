@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { } from 'react'
 
 interface LoadingScreenProps {
   message?: string
@@ -6,17 +6,6 @@ interface LoadingScreenProps {
 }
 
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...', progress = 0 }: LoadingScreenProps) {
-  const [loadingBoard, setLoadingBoard] = useState<boolean>(true)
-
-  // Stop animation after 10 seconds
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setLoadingBoard(false)
-    }, 10000)
-
-    return () => clearTimeout(timeout)
-  }, [])
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950">
       {/* Loading Animation */}
@@ -24,11 +13,11 @@ export default function LoadingScreen({ message = 'Analyzing with Stockfish...',
         <p className="text-lg font-medium text-zinc-300">{message}</p>
 
         <p className="text-sm text-zinc-500">
-          {loadingBoard ? 'Analyzing moves...' : 'Analysis complete!'}
+          Analyzing moves...
         </p>
 
         {/* Progress indicator */}
-        {loadingBoard && (
+        {progress > 0 && (
           <div className="w-64">
             <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
               <div
