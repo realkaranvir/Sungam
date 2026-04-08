@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useRef } from 'react'
 
 interface LoadingScreenProps {
   message?: string
@@ -24,8 +25,19 @@ const humorousMessages = [
 ]
 
 export default function LoadingScreen({ message = 'Analyzing with Stockfish...', progress = 0 }: LoadingScreenProps) {
+  const previousProgressRef = useRef(0)
+
   const randomMessage = useMemo(() => {
-    return humorousMessages[Math.floor(Math.random() * humorousMessages.length)]
+    // Only change message every 5% progress (about every 3-4 updates)
+    const progressIncrement = 5
+    const currentIndex = Math.floor(progress / progressIncrement) % humorousMessages.length
+
+    // Only update if progress has increased by at least progressIncrement
+    if (progress - previousProgressRef.current >= progressIncrement) {
+      previousProgressRef.current = progress
+    }
+
+    return humorousMessages[currentIndex]
   }, [progress])
 
   return (
