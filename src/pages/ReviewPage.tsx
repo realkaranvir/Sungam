@@ -51,6 +51,44 @@ function pvToSan(fen: string, uciMoves: string[], maxPlies = 4): string {
   }
 }
 
+/**
+ * Calculate accuracy percentage for a player using weighted sigmoid
+ * @param analyzedMoves Array of analyzed moves with cpBefore and cpAfter
+ * @returns Accuracy percentage (0-100), higher is better
+ */
+export function calculateAccuracy(analyzedMoves: Array<{ cpBefore?: number; cpAfter?: number }>): number {
+  if (analyzedMoves.length === 0) return 0
+
+  let totalScore = 0
+  let totalWeight = 0
+
+  analyzedMoves.forEach(move => {
+    const cpBefore = move.cpBefore ?? 0
+    const cpAfter = move.cpAfter ?? 0
+
+    // Calculate centipawn loss for this move
+    const cpLoss = Math.abs(cpAfter - cpBefore)
+
+    // Sigmoid function: 1 / (1 + exp(-x / 30))
+    // Higher cpLoss = lower score (worse move)
+    const sigmoid = 1 / (1 + Math.exp(-cpLoss / 30))
+
+    // Weight based on position (closer to 0 = more critical)
+    // Winning/losing positions get less weight
+    const positionScore = Math.abs(cpBefore)
+    const weight = 1 / (positionScore + 1)
+
+    totalScore += sigmoid * weight
+    totalWeight += weight
+  })
+
+  // Normalize to 0-100 and convert to percentage (higher is better)
+  const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0.5
+  const accuracy = Math.round(averageScore * 100)
+
+  return Math.max(0, Math.min(100, accuracy))
+}
+
 export function ReviewPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -322,6 +360,13 @@ export function ReviewPage() {
       </div>
     )
   }
+
+  // Get accuracy from analyzed moves using weighted sigmoid
+  const whiteMoves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === 'w')
+  const blackMoves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === 'b')
+
+  const whiteAccuracy = calculateAccuracy(whiteMoves)
+  const blackAccuracy = calculateAccuracy(blackMoves)
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -597,6 +642,35 @@ export function ReviewPage() {
             {analyzedMoves.length > 0 && analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null).length > 0 && (
               <div className="shrink-0">
                 <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Evaluation</h4>
+
+                {/* Accuracy percentages */}
+                <div className="flex gap-4 mb-2">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                      <span>White</span>
+                      <span>{whiteAccuracy.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white transition-all duration-500"
+                        style={{ width: `${whiteAccuracy}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                      <span>Black</span>
+                      <span>{blackAccuracy.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-zinc-300 transition-all duration-500"
+                        style={{ width: `${blackAccuracy}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <EvaluationGraph
                   evaluations={analyzedMoves
                     .map(m => m?.cpBefore ?? 0)
