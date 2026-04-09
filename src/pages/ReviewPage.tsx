@@ -362,8 +362,11 @@ export function ReviewPage() {
   }
 
   // Get accuracy from analyzed moves using weighted sigmoid
-  const whiteAccuracy = calculateAccuracy(analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null))
-  const blackAccuracy = calculateAccuracy(analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null))
+  const whiteMoves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === 'w')
+  const blackMoves = analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null && m.color === 'b')
+
+  const whiteAccuracy = calculateAccuracy(whiteMoves)
+  const blackAccuracy = calculateAccuracy(blackMoves)
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
