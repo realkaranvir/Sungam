@@ -58,6 +58,14 @@ export function ReviewPage() {
   const game = location.state?.game as ProcessedGame | undefined
   const userColor = game?.userColor ?? 'white'
 
+  // Debug: log game and accuracies
+  console.log('=== ReviewPage Debug ===')
+  console.log('Game object:', game)
+  console.log('Game has accuracies:', game?.accuracies !== undefined)
+  console.log('White accuracy:', game?.accuracies?.white)
+  console.log('Black accuracy:', game?.accuracies?.black)
+  console.log('========================')
+
   const { moves, initialFen } = useChessGame(game?.pgn ?? '')
   const { analyzePosition, stop } = useStockfish()
 
@@ -326,6 +334,11 @@ export function ReviewPage() {
   // Get accuracy from chess.com API if available
   const whiteAccuracy = game?.accuracies?.white ?? 0
   const blackAccuracy = game?.accuracies?.black ?? 0
+
+  console.log('White accuracy value:', whiteAccuracy)
+  console.log('Black accuracy value:', blackAccuracy)
+  console.log('Has accuracies:', !!game?.accuracies)
+  console.log('Accuracies object:', game?.accuracies)
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
