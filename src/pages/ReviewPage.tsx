@@ -51,20 +51,50 @@ function pvToSan(fen: string, uciMoves: string[], maxPlies = 4): string {
   }
 }
 
+/**
+ * Calculate accuracy percentage for a player using weighted sigmoid
+ * @param analyzedMoves Array of analyzed moves with cpBefore and cpAfter
+ * @returns Accuracy percentage (0-100), higher is better
+ */
+export function calculateAccuracy(analyzedMoves: Array<{ cpBefore?: number; cpAfter?: number }>): number {
+  if (analyzedMoves.length === 0) return 0
+
+  let totalScore = 0
+  let totalWeight = 0
+
+  analyzedMoves.forEach(move => {
+    const cpBefore = move.cpBefore ?? 0
+    const cpAfter = move.cpAfter ?? 0
+
+    // Calculate centipawn loss for this move
+    const cpLoss = Math.abs(cpAfter - cpBefore)
+
+    // Sigmoid function: 1 / (1 + exp(-x / 30))
+    // Higher cpLoss = lower score (worse move)
+    const sigmoid = 1 / (1 + Math.exp(-cpLoss / 30))
+
+    // Weight based on position (closer to 0 = more critical)
+    // Winning/losing positions get less weight
+    const positionScore = Math.abs(cpBefore)
+    const weight = 1 / (positionScore + 1)
+
+    totalScore += sigmoid * weight
+    totalWeight += weight
+  })
+
+  // Normalize to 0-100 and convert to percentage (higher is better)
+  const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0.5
+  const accuracy = Math.round(averageScore * 100)
+
+  return Math.max(0, Math.min(100, accuracy))
+}
+
 export function ReviewPage() {
   const location = useLocation()
   const navigate = useNavigate()
   useParams() // gameId present in URL but game data comes via router state
   const game = location.state?.game as ProcessedGame | undefined
   const userColor = game?.userColor ?? 'white'
-
-  // Debug: log game and accuracies
-  console.log('=== ReviewPage Debug ===')
-  console.log('Game object:', game)
-  console.log('Game has accuracies:', game?.accuracies !== undefined)
-  console.log('White accuracy:', game?.accuracies?.white)
-  console.log('Black accuracy:', game?.accuracies?.black)
-  console.log('========================')
 
   const { moves, initialFen } = useChessGame(game?.pgn ?? '')
   const { analyzePosition, stop } = useStockfish()
@@ -331,14 +361,9 @@ export function ReviewPage() {
     )
   }
 
-  // Get accuracy from chess.com API if available
-  const whiteAccuracy = game?.accuracies?.white ?? 0
-  const blackAccuracy = game?.accuracies?.black ?? 0
-
-  console.log('White accuracy value:', whiteAccuracy)
-  console.log('Black accuracy value:', blackAccuracy)
-  console.log('Has accuracies:', !!game?.accuracies)
-  console.log('Accuracies object:', game?.accuracies)
+  // Get accuracy from analyzed moves using weighted sigmoid
+  const whiteAccuracy = calculateAccuracy(analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null))
+  const blackAccuracy = calculateAccuracy(analyzedMoves.filter((m): m is NonNullable<typeof m> => m !== null))
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">

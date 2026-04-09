@@ -42,7 +42,6 @@ function processGame(game: ChessComRawGame, username: string): ProcessedGame {
     date: dateStr,
     pgn: game.pgn,
     userRating: userSide.rating,
-    accuracies: game.accuracies,
   }
 }
 
