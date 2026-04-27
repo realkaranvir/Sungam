@@ -17,6 +17,7 @@ export function PuzzlePage() {
   const [solved, setSolved] = useState(false)
   const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white')
+  const [selectedPiece, setSelectedPiece] = useState<{ piece: string; square: string } | null>(null)
   const [infiniteMode, setInfiniteMode] = useState(() => {
     const saved = localStorage.getItem('sungam_infinite_puzzles')
     return saved === 'true'
@@ -206,6 +207,101 @@ export function PuzzlePage() {
     )
   }
 
+  const onPieceClick = ({ piece: _piece, square }: any) => {
+    // Disable clicking when solved or auto-playing
+    if (solved || isAutoPlayingRef.current) return
+
+    const chess = chessRef.current
+    if (!chess) return
+
+    const currentTurn = chess.turn()
+
+    // Check if it's your turn
+    if (!_piece || _piece.pieceType?.charAt(0) !== currentTurn) {
+      setSelectedPiece(null)
+      return
+    }
+
+    // If clicking same piece, deselect it
+    if (selectedPiece?.square === square) {
+      setSelectedPiece(null)
+      return
+    }
+
+    // Select the piece
+    setSelectedPiece({ piece: _piece.pieceType, square })
+  }
+
+  const onSquareClick = ({ square }: any) => {
+    // Disable clicking when solved or auto-playing
+    if (solved || isAutoPlayingRef.current) return
+
+    // If no piece selected, do nothing
+    if (!selectedPiece) return
+
+    const chess = chessRef.current
+    if (!chess) return
+
+    const currentTurn = chess.turn()
+
+    // Check if it's your turn
+    if (selectedPiece.piece.charAt(0) !== currentTurn) {
+      setSelectedPiece(null)
+      return
+    }
+
+    // Try to make the move
+    try {
+      chess.move({ from: selectedPiece.square, to: square })
+      setCurrentFen(chess.fen())
+      setUserMoves([...userMoves, `${selectedPiece.square}${square}`])
+
+      // Check if this was the last move
+      const nextMoveIndex = currentMoveIndex + 1
+      setCurrentMoveIndex(nextMoveIndex)
+
+      if (nextMoveIndex === solution.length - 1) {
+        toast.success('✓ Correct!')
+
+        // Trigger confetti celebration
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1']
+        })
+
+        // Check if infinite mode is enabled
+        if (infiniteMode) {
+          // Debounce to prevent rapid successive solves
+          if (autoPlayTimeoutRef.current) {
+            clearTimeout(autoPlayTimeoutRef.current)
+          }
+          autoPlayTimeoutRef.current = window.setTimeout(() => {
+            handleNextPuzzle()
+          }, 1000) // 1 second delay
+        }
+      } else {
+        toast.success('✓ Good!')
+      }
+
+      // Check if it's opponent's turn and auto-play
+      if (chessRef.current && chessRef.current.turn() !== (boardOrientation === 'white' ? 'w' : 'b') && nextMoveIndex < solution.length - 1) {
+        autoPlayNextMove(chessRef.current, nextMoveIndex)
+      } else {
+        setSolved(true);
+      }
+
+      // Deselect piece after move
+      setSelectedPiece(null)
+      return true
+    } catch (err) {
+      // Invalid move - deselect
+      setSelectedPiece(null)
+      return false
+    }
+  }
+
   const onPieceDrop = ({ piece, sourceSquare, targetSquare }: any) => {
     if (solved || isAutoPlayingRef.current) return false
 
@@ -314,6 +410,7 @@ export function PuzzlePage() {
       }
 
       console.log('Valid move made! New FEN:', chess.fen())
+      setSelectedPiece(null)
       return true
     } catch (err) {
       console.log('Invalid move:', err)
@@ -426,6 +523,8 @@ export function PuzzlePage() {
                     position: currentFen,
                     boardOrientation,
                     onPieceDrop,
+                    onPieceClick,
+                    onSquareClick,
                     allowDragging: true,
                     boardStyle: {
                       borderRadius: '4px',
