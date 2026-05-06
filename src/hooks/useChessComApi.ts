@@ -72,14 +72,13 @@ export function useChessComApi() {
       const currentYear = now.getFullYear()
       const currentMonth = now.getMonth() + 1 // 1-indexed
 
-      // Try current month, then previous month
-      const monthsToTry = [
-        { year: currentYear, month: currentMonth },
-        {
-          year: currentMonth === 1 ? currentYear - 1 : currentYear,
-          month: currentMonth === 1 ? 12 : currentMonth - 1,
-        },
-      ]
+      // Try current month, then previous 2 months
+      const monthsToTry = []
+      for (let i = 0; i < 3; i++) {
+        const year = currentMonth === 1 ? currentYear - 1 : currentYear
+        const month = currentMonth === 1 ? 12 : currentMonth - i
+        monthsToTry.push({ year, month })
+      }
 
       let allGames: ChessComRawGame[] = []
 
