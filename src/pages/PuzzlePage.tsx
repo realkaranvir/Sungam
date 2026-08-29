@@ -60,6 +60,27 @@ export function PuzzlePage() {
     }
   }
 
+  const completePuzzle = () => {
+    setSolved(true)
+    toast.success('✓ Correct!')
+
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1'],
+    })
+
+    if (infiniteMode) {
+      if (autoPlayTimeoutRef.current) {
+        clearTimeout(autoPlayTimeoutRef.current)
+      }
+      autoPlayTimeoutRef.current = window.setTimeout(() => {
+        handleNextPuzzle()
+      }, 1000)
+    }
+  }
+
   const autoPlayNextMove = async (chess: Chess, moveIndex: number) => {
     // Check if puzzle is solved or no more moves
     if (solved || isAutoPlayingRef.current || moveIndex >= solution.length) {
@@ -68,18 +89,29 @@ export function PuzzlePage() {
 
     isAutoPlayingRef.current = true
 
-    // Small delay to let user see their move
-    await new Promise(resolve => setTimeout(resolve, 500))
+    try {
+      // Small delay to let user see their move
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-    // Get next solution move and auto-play it using chess instance
-    const nextMove = solution[moveIndex]
+      // Get next solution move and auto-play it using chess instance
+      const nextMove = solution[moveIndex]
+      const uciMove = convertSanToUci(nextMove, chess.fen())
+      if (!uciMove) {
+        console.error('Failed to convert autoplay move:', nextMove)
+        return
+      }
 
-    const uciMove = convertSanToUci(nextMove, chess.fen())
-
-    if (uciMove) {
       chess.move(uciMove)
       setCurrentFen(chess.fen())
-      setCurrentMoveIndex(moveIndex + 1)
+      const nextMoveIndex = moveIndex + 1
+      setCurrentMoveIndex(nextMoveIndex)
+
+      if (nextMoveIndex >= solution.length) {
+        completePuzzle()
+      }
+    } catch (err) {
+      console.error('Failed to autoplay puzzle move:', err)
+    } finally {
       isAutoPlayingRef.current = false
     }
   }
@@ -252,54 +284,17 @@ export function PuzzlePage() {
           setCurrentMoveIndex(nextMoveIndex)
           setUserMoves([...userMoves, uciMove])
 
-          // Show appropriate toast based on whether this is the last move
-          if (nextMoveIndex === solution.length - 1) {
-            toast.success('✓ Correct!')
-
-            // Trigger confetti celebration
-            confetti({
-              particleCount: 150,
-              spread: 70,
-              origin: { y: 0.6 },
-              colors: ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1']
-            })
-
-            // Check if infinite mode is enabled
-            if (infiniteMode) {
-              // Debounce to prevent rapid successive solves
-              if (autoPlayTimeoutRef.current) {
-                clearTimeout(autoPlayTimeoutRef.current)
-              }
-              autoPlayTimeoutRef.current = window.setTimeout(() => {
-                handleNextPuzzle()
-              }, 1000) // 1 second delay
-            }
+          if (nextMoveIndex >= solution.length) {
+            completePuzzle()
           } else {
             toast.success('✓ Good!')
+
+            const userTurn = boardOrientation === 'white' ? 'w' : 'b'
+            if (chess.turn() !== userTurn) {
+              void autoPlayNextMove(chess, nextMoveIndex)
+            }
           }
           console.log('Correct move! Continuing to next move.')
-
-          // Use the new index for the check (not the old one)
-          console.log('Checking auto-play conditions:', {
-            chessRefExists: !!chessRef.current,
-            currentTurn: chessRef.current?.turn(),
-            boardOrientation,
-            nextMoveIndex,
-            solutionLength: solution.length,
-            shouldAutoPlay: chessRef.current && chessRef.current.turn() !== (boardOrientation === 'white' ? 'w' : 'b') && nextMoveIndex < solution.length - 1
-          })
-          if (chessRef.current && chessRef.current.turn() !== (boardOrientation === 'white' ? 'w' : 'b') && nextMoveIndex < solution.length - 1) {
-            console.log('Triggering auto-play')
-            autoPlayNextMove(chessRef.current, nextMoveIndex)
-          } else {
-            console.log('Skipping auto-play:', {
-              currentTurn: chessRef.current?.turn(),
-              boardOrientation,
-              nextMoveIndex,
-              solutionLength: solution.length
-            })
-            setSolved(true);
-          }
         } else {
           toast.error('✗ Wrong move!', {
             duration: 2000,
