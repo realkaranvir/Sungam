@@ -14,11 +14,9 @@ export function EvaluationBar({
   orientation = 'white',
   className,
 }: EvaluationBarProps) {
-  const rawValue = scoreToBarValue(cp, mate) // -1 to 1, white perspective
-  const displayValue = orientation === 'white' ? rawValue : -rawValue
-
-  // White percentage on top (0% = all black, 100% = all white)
-  const whitePercent = Math.round(((displayValue + 1) / 2) * 100)
+  const value = scoreToBarValue(cp, mate) // -1 to 1, white perspective
+  const whitePercent = Math.round(((value + 1) / 2) * 100)
+  const blackPercent = 100 - whitePercent
 
   const score = formatScore(cp, mate)
   const isWhiteAdvantage = cp > 0 || (mate !== null && mate > 0)
@@ -37,14 +35,19 @@ export function EvaluationBar({
 
       {/* Bar — grows to fill remaining height */}
       <div className="relative flex-1 w-4 rounded overflow-hidden bg-zinc-900 border border-zinc-700 lg:h-full lg:my-4">
-        {/* Black portion (top) */}
+        {/* Keep each color beside its pieces when the board orientation changes. */}
         <div
-          className="absolute top-0 left-0 right-0 bg-zinc-900 transition-all duration-500 ease-in-out"
-          style={{ height: `${100 - whitePercent}%` }}
+          className={cn(
+            'absolute left-0 right-0 bg-zinc-900 transition-all duration-500 ease-in-out',
+            orientation === 'white' ? 'top-0' : 'bottom-0',
+          )}
+          style={{ height: `${blackPercent}%` }}
         />
-        {/* White portion (bottom) */}
         <div
-          className="absolute bottom-0 left-0 right-0 bg-white transition-all duration-500 ease-in-out"
+          className={cn(
+            'absolute left-0 right-0 bg-white transition-all duration-500 ease-in-out',
+            orientation === 'white' ? 'bottom-0' : 'top-0',
+          )}
           style={{ height: `${whitePercent}%` }}
         />
         {/* Center line */}

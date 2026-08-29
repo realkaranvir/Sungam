@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { Chessboard } from 'react-chessboard'
+import type { PieceDropHandlerArgs, SquareHandlerArgs } from 'react-chessboard'
 import { Chess } from 'chess.js'
+import type { Square } from 'chess.js'
 import { getRandomPuzzle } from '@/data/puzzles'
 import { AppHeader } from '@/components/AppHeader'
 import { toast } from 'sonner'
@@ -9,7 +11,7 @@ import { InfinityIcon } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
 export function PuzzlePage() {
-  const [puzzle, setPuzzle] = useState<any>(null)
+  const [puzzle, setPuzzle] = useState<Awaited<ReturnType<typeof getRandomPuzzle>> | null>(null)
   const [currentFen, setCurrentFen] = useState('')
   const [loading, setLoading] = useState(true)
   const [userMoves, setUserMoves] = useState<string[]>([])
@@ -17,6 +19,7 @@ export function PuzzlePage() {
   const [solved, setSolved] = useState(false)
   const [boardSize, setBoardSize] = useState<number | undefined>(undefined)
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white')
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
   const [infiniteMode, setInfiniteMode] = useState(() => {
     const saved = localStorage.getItem('sungam_infinite_puzzles')
     return saved === 'true'
@@ -206,26 +209,21 @@ export function PuzzlePage() {
     )
   }
 
-  const onPieceDrop = ({ piece, sourceSquare, targetSquare }: any) => {
+  const makePuzzleMove = (sourceSquare: Square, targetSquare: Square) => {
     if (solved || isAutoPlayingRef.current) return false
 
     const chess = chessRef.current
     if (!chess) return false
 
     const currentTurn = chess.turn()
-    console.log('Piece object:', piece)
     console.log('Source square:', sourceSquare, 'Target square:', targetSquare)
     console.log('Current turn:', currentTurn)
-    console.log('Piece color from piece object:', piece?.pieceType)
 
     const squarePiece = chess.get(sourceSquare)
     console.log('Square piece from chess.js:', squarePiece)
 
-    const pieceColor = piece?.pieceType?.charAt(0)
-    console.log('Piece color (extracted):', pieceColor)
-
-    if (pieceColor !== currentTurn) {
-      console.log('Not your turn! Piece color:', pieceColor, 'Current turn:', currentTurn)
+    if (!squarePiece || squarePiece.color !== currentTurn) {
+      console.log('Not your turn! Piece color:', squarePiece?.color, 'Current turn:', currentTurn)
       return false
     }
 
@@ -321,6 +319,40 @@ export function PuzzlePage() {
     }
   }
 
+  const onPieceDrop = ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
+    setSelectedSquare(null)
+    if (!targetSquare) return false
+    return makePuzzleMove(sourceSquare as Square, targetSquare as Square)
+  }
+
+  const onSquareClick = ({ square }: SquareHandlerArgs) => {
+    if (solved || isAutoPlayingRef.current) return
+
+    const chess = chessRef.current
+    if (!chess) return
+
+    if (!selectedSquare) {
+      const piece = chess.get(square as Square)
+      if (piece?.color === chess.turn()) setSelectedSquare(square)
+      return
+    }
+
+    if (square === selectedSquare) {
+      setSelectedSquare(null)
+      return
+    }
+
+    const piece = chess.get(square as Square)
+    if (piece?.color === chess.turn()) {
+      setSelectedSquare(square)
+      return
+    }
+
+    const sourceSquare = selectedSquare
+    setSelectedSquare(null)
+    makePuzzleMove(sourceSquare as Square, square as Square)
+  }
+
   const handleNextPuzzle = async () => {
     // Clear any pending timeouts
     if (autoPlayTimeoutRef.current) {
@@ -333,6 +365,7 @@ export function PuzzlePage() {
     setSolved(false)
     setUserMoves([])
     setCurrentMoveIndex(0)
+    setSelectedSquare(null)
     setLoading(true)
 
     localStorage.setItem('sungam_infinite_puzzles', String(infiniteMode))
@@ -426,7 +459,15 @@ export function PuzzlePage() {
                     position: currentFen,
                     boardOrientation,
                     onPieceDrop,
+                    onSquareClick,
                     allowDragging: true,
+                    squareStyles: selectedSquare
+                      ? {
+                          [selectedSquare]: {
+                            boxShadow: 'inset 0 0 0 4px rgba(99, 102, 241, 0.9)',
+                          },
+                        }
+                      : {},
                     boardStyle: {
                       borderRadius: '4px',
                       boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
