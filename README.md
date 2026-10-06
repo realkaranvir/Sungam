@@ -6,7 +6,7 @@ Sungam is a chess game review app. Enter a Chess.com username, browse their rece
 
 - **Game search** — Look up any Chess.com username and browse their games from the last 3 months via the [Chess.com API](https://www.chess.com/news/view/api)
 - **Game review** — Stockfish 18 (WASM) analysis running entirely in the browser: evaluation graph, per-move classification badges (best, good, inaccuracy, mistake, blunder), and opening book detection
-- **Puzzles** — Puzzle mode with click-to-move, autoplay, and a confetti celebration on solve
+- **Puzzles** — Puzzle mode with click-to-move, autoplay, and a confetti celebration on solve. Puzzles are drawn at random from a fixed library of 191,264 positions (~88 MB), so repeats are rare: the chance of seeing the same puzzle twice stays under 1% until you've solved ~60, climbs to ~10% around 200, and only reaches ~50% after ~500.
 - **Dashboard** — Per-user game list with results and links into review
 
 ## Tech Stack
@@ -40,4 +40,4 @@ Pull requests against `dev` get an automatic Render preview environment. Preview
 
 ## Credits
 
-Created by Karanvir with a local AI model (Qwen3.8-27B via llama.cpp) running on his Mac, using OpenClaw and [OpenCode](https://opencode.ai).
+Created by Karan with a local AI model (Qwen3.8-27B via llama.cpp) running on his Mac, using OpenClaw and [OpenCode](https://opencode.ai).
