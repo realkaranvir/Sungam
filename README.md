@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# Sungam
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sungam is a chess game review app. Enter a Chess.com username, browse their recent games, and get full engine analysis of any game — evaluation graph, per-move classification, and opening book coverage. A puzzle mode is included for daily practice.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Game search** — Look up any Chess.com username and browse their games from the last 3 months via the [Chess.com API](https://www.chess.com/news/view/api)
+- **Game review** — Stockfish 18 (WASM) analysis running entirely in the browser: evaluation graph, per-move classification badges (best, good, inaccuracy, mistake, blunder), and opening book detection
+- **Puzzles** — Puzzle mode with click-to-move, autoplay, and a confetti celebration on solve. Puzzles are drawn at random from a fixed library of 191,264 positions (~88 MB), so repeats are rare: the chance of seeing the same puzzle twice stays under 1% until you've solved ~60, climbs to ~10% around 200, and only reaches ~50% after ~500.
+- **Dashboard** — Per-user game list with results and links into review
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [React 19](https://react.dev/) + TypeScript + [Vite](https://vite.dev/)
+- [Tailwind CSS 4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
+- [react-chessboard](https://github.com/clayt0n5/react-chessboard) + [chess.js](https://github.com/jhlywa/chess.js)
+- [Stockfish 18](https://stockfishchess.org/) (WASM build, runs client-side)
+- [react-router-dom](https://reactrouter.com/), [sonner](https://sonner.emilkowal.ski/) toasts, [canvas-confetti](https://canvas-confetti.com/)
 
-## Expanding the ESLint configuration
+Puzzles are stored in `public/puzzles.pgn` and can be refreshed with `scripts/fetch-puzzles.js`. The Stockfish WASM files are copied into `public/` automatically on `npm install` via `scripts/copy-stockfish.js`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install     # installs deps and copies Stockfish WASM into public/
+npm run dev     # start dev server with hot reload
+npm run build   # type-check and build for production
+npm run lint    # run ESLint
+npm run preview # preview the production build locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deployment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Sungam is deployed on [Render](https://render.com) as a static site with auto-deploy on push.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Production** (`main`): https://sungam.onrender.com
+- **Development** (`dev`): https://sungam-develop.onrender.com
+
+Pull requests against `dev` get an automatic Render preview environment. Previews (any `*.onrender.com` host other than prod/dev) load the [eruda](https://github.com/lirious/eruda) in-browser debugger.
+
+## Credits
+
+Created by Karan with a local AI model (Qwen3.8-27B via llama.cpp) running on his Mac, using OpenClaw and [OpenCode](https://opencode.ai).
