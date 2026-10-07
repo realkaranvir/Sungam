@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, UserRound, Puzzle, FileSearch } from 'lucide-react'
+import { ArrowLeft, LogOut, Puzzle, FileSearch } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 
 const LS_KEY = 'sungam_username'
@@ -91,7 +91,7 @@ export function AppHeader({
             title="Change user"
             className="text-zinc-400 hover:text-white hover:bg-zinc-900 shrink-0"
           >
-            <UserRound className="h-4 w-4" />
+            <LogOut className="h-4 w-4" />
             <span className="ml-2 text-xs hidden sm:inline">Switch user</span>
           </Button>
         </div>
